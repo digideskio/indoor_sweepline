@@ -109,6 +109,23 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    row.addElement("");
 	    row.addElement("");
 	    structureTableModel.addRow(row);
+	    structureTableModel.isBeam = true;
+	}
+	else
+	{
+	    Strip strip = controller.getStrip(beamIndex);
+	    for (int i = 0; i < strip.lhs.size() || i < strip.rhs.size(); ++i)
+	    {
+		Vector<Object> row = new Vector<Object>();
+		String position = i < strip.lhs.size() ? strip.lhs.elementAt(i).toString() : "X";
+		position += " - " + (i < strip.rhs.size() ? strip.rhs.elementAt(i).toString() : "X");
+		row.addElement(position);
+		row.addElement(i < strip.parts.size() ?
+		    corridorPartTypeToString(strip.parts.elementAt(i)) : "wall");
+		row.addElement(i % 2 == 0 ? "down" : "up");
+		structureTableModel.addRow(row);
+	    }
+	    structureTableModel.isBeam = false;
 	}
 	
 	inRefresh = false;
@@ -117,7 +134,9 @@ public class IndoorSweeplineWizardDialog extends JDialog
     
     private String corridorPartTypeToString(CorridorPart.Type type)
     {
-	if (type == CorridorPart.Type.PASSAGE)
+	if (type == CorridorPart.Type.VOID)
+	    return "void";
+	else if (type == CorridorPart.Type.PASSAGE)
 	    return "passage";
 	else if (type == CorridorPart.Type.WALL)
 	    return "wall";
@@ -127,11 +146,13 @@ public class IndoorSweeplineWizardDialog extends JDialog
     
     private CorridorPart.Type parseCorridorPartType(String val)
     {
-	if (val == "passage")
+	if (val == "void")
+	    return CorridorPart.Type.VOID;
+	else if (val == "passage")
 	    return CorridorPart.Type.PASSAGE;
 	else if (val == "wall")
 	    return CorridorPart.Type.WALL;
-	return CorridorPart.Type.PASSAGE;
+	return CorridorPart.Type.VOID;
     }
     
     
@@ -289,11 +310,22 @@ public class IndoorSweeplineWizardDialog extends JDialog
     }
 
     
-    private DefaultTableModel structureTableModel;
+    private class StructureTableModel extends DefaultTableModel
+    {
+	@Override
+	public boolean isCellEditable(int row, int column)
+	{
+	    return isBeam || column == 1;
+	}
+	
+	public boolean isBeam;
+    }
+    
+    private StructureTableModel structureTableModel;
     
     private JScrollPane makeStructureTable()
     {
-	structureTableModel = new DefaultTableModel();	
+	structureTableModel = new StructureTableModel();	
 	structureTableModel.addColumn("Width");
 	structureTableModel.addColumn("Type");
 	structureTableModel.addColumn("Reachable Side");
@@ -303,6 +335,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	
 	TableColumn column = table.getColumnModel().getColumn(1);
 	JComboBox comboBox = new JComboBox();
+	comboBox.addItem("void");
 	comboBox.addItem("passage");
 	comboBox.addItem("wall");
 	column.setCellEditor(new DefaultCellEditor(comboBox));
@@ -346,6 +379,11 @@ public class IndoorSweeplineWizardDialog extends JDialog
 		if (row < structureTableModel.getRowCount() - 1)
 		    controller.setCorridorPartType(beamIndex, row,
 			parseCorridorPartType(((TableModel)e.getSource()).getValueAt(row, column).toString()));
+	    }
+	    else if (column == 1 && beamIndex % 2 == 1)
+	    {
+		controller.setCorridorPartType(beamIndex, row,
+		    parseCorridorPartType(((TableModel)e.getSource()).getValueAt(row, column).toString()));
 	    }
 	    else if (column == 2 && beamIndex % 2 == 0)
 	    {

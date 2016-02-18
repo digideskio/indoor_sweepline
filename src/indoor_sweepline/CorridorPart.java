@@ -10,6 +10,7 @@ public class CorridorPart
 {
     public enum Type
     {
+	VOID,
 	PASSAGE,
 	WALL
     }

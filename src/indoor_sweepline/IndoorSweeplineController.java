@@ -98,6 +98,11 @@ public class IndoorSweeplineController implements MapView.LayerChangeListener
 	model.setCorridorPartSide(beamIndex, partIndex, side);
     }
     
+    public Strip getStrip(int beamIndex)
+    {
+	return model.getStrip(beamIndex);
+    }
+    
     private OsmDataLayer layer;
     private IndoorSweeplineModel model;
     private IndoorSweeplineWizardDialog dialog;

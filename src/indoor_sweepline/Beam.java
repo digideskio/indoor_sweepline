@@ -9,14 +9,16 @@ import org.openstreetmap.josm.data.osm.Node;
 
 public class Beam
 {
-    public Beam(DataSet dataSet, LatLon center)
+    public Beam(DataSet dataSet, LatLon center, double width, CorridorPart.ReachableSide defaultSide)
     {
 	parts = new Vector<CorridorPart>();
 	nodes = new Vector<Node>();
 	this.dataSet = dataSet;
+	defaultType = CorridorPart.Type.WALL;
+	this.defaultSide = defaultSide;
 	
 	addNode(new Node(center), nodes);
-	addCorridorPart(10.);
+	addCorridorPart(width);
 
 	this.nodes = nodes;
     }
@@ -66,9 +68,12 @@ public class Beam
     }
 
     
+    private CorridorPart.Type defaultType;
+    private CorridorPart.ReachableSide defaultSide;
+    
     public void addCorridorPart(double width)
     {
-	parts.add(new CorridorPart(width, CorridorPart.Type.PASSAGE, CorridorPart.ReachableSide.ALL));
+	parts.add(new CorridorPart(width, defaultType, defaultSide));
 	addNode(new Node(new LatLon(addMetersToLat(
 	    nodes.elementAt(nodes.size()-1).getCoor(), width), nodes.elementAt(nodes.size()-1).getCoor().lon())),
 	    nodes);
@@ -91,6 +96,92 @@ public class Beam
     public void setCorridorPartSide(int partIndex, CorridorPart.ReachableSide side)
     {
 	parts.elementAt(partIndex).side = side;
+    }
+    
+    
+    public Vector<Double> leftHandSideStrips()
+    {
+	Vector<Double> offsets = new Vector<Double>();
+	double offset = 0;
+	for (int i = 0; i < parts.size(); ++i)
+	{
+	    if (parts.elementAt(i).type == CorridorPart.Type.VOID)
+	    {
+		if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.WALL
+			&& parts.elementAt(i-1).side == CorridorPart.ReachableSide.LEFT)
+		    offsets.add(new Double(offset));
+		else if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.PASSAGE)
+		    offsets.add(new Double(offset));
+	    }
+	    else if (parts.elementAt(i).type == CorridorPart.Type.WALL)
+	    {
+		if (parts.elementAt(i).side == CorridorPart.ReachableSide.LEFT
+			&& (i == 0 || parts.elementAt(i-1).type == CorridorPart.Type.VOID))
+		    offsets.add(new Double(offset));
+		else if (parts.elementAt(i).side == CorridorPart.ReachableSide.RIGHT
+			&& i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.PASSAGE)
+		    offsets.add(new Double(offset));
+	    }
+	    else /*if (parts.elementAt(i).type == CorridorPart.Type.PASSAGE)*/
+	    {
+		if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.WALL
+			&& parts.elementAt(i).side == CorridorPart.ReachableSide.RIGHT)
+		    offsets.add(new Double(offset));
+		else if (i == 0 || parts.elementAt(i-1).type == CorridorPart.Type.VOID)
+		    offsets.add(new Double(offset));
+	    }
+	    offset += parts.elementAt(i).width;
+	}
+	if (parts.size() > 0 && parts.elementAt(parts.size()-1).type == CorridorPart.Type.WALL
+		&& parts.elementAt(parts.size()-1).side == CorridorPart.ReachableSide.LEFT)
+	    offsets.add(new Double(offset));
+	else if (parts.size() > 0 && parts.elementAt(parts.size()-1).type == CorridorPart.Type.PASSAGE)
+	    offsets.add(new Double(offset));
+	    
+	return offsets;
+    }
+    
+    
+    public Vector<Double> rightHandSideStrips()
+    {
+	Vector<Double> offsets = new Vector<Double>();
+	double offset = 0;
+	for (int i = 0; i < parts.size(); ++i)
+	{
+	    if (parts.elementAt(i).type == CorridorPart.Type.VOID)
+	    {
+		if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.WALL
+			&& parts.elementAt(i-1).side == CorridorPart.ReachableSide.RIGHT)
+		    offsets.add(new Double(offset));
+		else if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.PASSAGE)
+		    offsets.add(new Double(offset));
+	    }
+	    else if (parts.elementAt(i).type == CorridorPart.Type.WALL)
+	    {
+		if (parts.elementAt(i).side == CorridorPart.ReachableSide.RIGHT
+			&& (i == 0 || parts.elementAt(i-1).type == CorridorPart.Type.VOID))
+		    offsets.add(new Double(offset));
+		else if (parts.elementAt(i).side == CorridorPart.ReachableSide.LEFT
+			&& i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.PASSAGE)
+		    offsets.add(new Double(offset));
+	    }
+	    else /*if (parts.elementAt(i).type == CorridorPart.Type.PASSAGE)*/
+	    {
+		if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.WALL
+			&& parts.elementAt(i-1).side == CorridorPart.ReachableSide.LEFT)
+		    offsets.add(new Double(offset));
+		else if (i == 0 || parts.elementAt(i-1).type == CorridorPart.Type.VOID)
+		    offsets.add(new Double(offset));
+	    }
+	    offset += parts.elementAt(i).width;
+	}
+	if (parts.size() > 0 && parts.elementAt(parts.size()-1).type == CorridorPart.Type.WALL
+		&& parts.elementAt(parts.size()-1).side == CorridorPart.ReachableSide.RIGHT)
+	    offsets.add(new Double(offset));
+	else if (parts.size() > 0 && parts.elementAt(parts.size()-1).type == CorridorPart.Type.PASSAGE)
+	    offsets.add(new Double(offset));
+	    
+	return offsets;
     }
     
 

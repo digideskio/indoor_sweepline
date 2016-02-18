@@ -33,11 +33,27 @@ public class IndoorSweeplineModel
     
     public void addBeam()
     {
+	CorridorPart.ReachableSide side = CorridorPart.ReachableSide.LEFT;
+	if (beams.size() == 0)
+	    side = CorridorPart.ReachableSide.RIGHT;
+	    
+	double width = 10.;
+	if (beams.size() > 0)
+	{
+	    width = 0;
+	    for (CorridorPart part : beams.elementAt(beams.size() - 1).getBeamParts())
+		width += part.width;
+	}
+    
 	double offset = 0;
 	for (int i = 0; i < strips.size(); ++i)
 	    offset += strips.elementAt(i).width;
 	    
-	beams.add(new Beam(dataSet, new LatLon(center.lat(), addMetersToLon(center, offset))));
+	beams.add(new Beam(dataSet, new LatLon(center.lat(), addMetersToLon(center, offset)),
+	    width, side));
+	
+	if (strips.size() > 0)
+	    strips.elementAt(beams.size()-2).rhs = beams.elementAt(beams.size()-1).leftHandSideStrips();
 	updateOsmModel();
     }
     
@@ -45,6 +61,7 @@ public class IndoorSweeplineModel
     public void addStrip()
     {
 	strips.add(new Strip());
+	strips.elementAt(strips.size()-1).lhs = beams.elementAt(strips.size()-1).rightHandSideStrips();
 	updateOsmModel();
     }
 
@@ -95,6 +112,12 @@ public class IndoorSweeplineModel
 	outerWay.setNodes(nodes);
 	Main.map.mapView.repaint();
     }
+
+    
+    public Strip getStrip(int index)
+    {
+	return strips.elementAt(index / 2);
+    }
     
     
     public double getStripWidth(int index)
@@ -119,6 +142,10 @@ public class IndoorSweeplineModel
     public void addCorridorPart(int beamIndex, double value)
     {
 	beams.elementAt(beamIndex / 2).addCorridorPart(value);
+	if (beamIndex / 2 > 0)
+	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
+	if (beamIndex / 2 < strips.size())
+	    strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
 	updateOsmModel();
     }
 
@@ -126,13 +153,26 @@ public class IndoorSweeplineModel
     public void setCorridorPartWidth(int beamIndex, int partIndex, double value)
     {
 	beams.elementAt(beamIndex / 2).setCorridorPartWidth(partIndex, value);
+	if (beamIndex / 2 > 0)
+	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
+	if (beamIndex / 2 < strips.size())
+	    strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
 	updateOsmModel();
     }
 
     
     public void setCorridorPartType(int beamIndex, int partIndex, CorridorPart.Type type)
     {
-	beams.elementAt(beamIndex / 2).setCorridorPartType(partIndex, type);
+	if (beamIndex % 2 == 0)
+	{
+	    beams.elementAt(beamIndex / 2).setCorridorPartType(partIndex, type);
+	    if (beamIndex / 2 > 0)
+		strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
+	    if (beamIndex / 2 < strips.size())
+		strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
+	}
+	else
+	    strips.elementAt(beamIndex / 2).setCorridorPartType(partIndex, type);
 	updateOsmModel();
     }
 
@@ -140,9 +180,13 @@ public class IndoorSweeplineModel
     public void setCorridorPartSide(int beamIndex, int partIndex, CorridorPart.ReachableSide side)
     {
 	beams.elementAt(beamIndex / 2).setCorridorPartSide(partIndex, side);
+	if (beamIndex / 2 > 0)
+	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
+	if (beamIndex / 2 < strips.size())
+	    strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
 	updateOsmModel();
     }
-
+    
     
     private DataSet dataSet;
     private LatLon center;
