@@ -19,6 +19,7 @@ public class IndoorSweeplineModel
 	dataSet = activeLayer.data;
 	this.center = center;
 	outerWay = new Way();
+	nodePool = new Vector<Node>();
 	activeLayer.data.addPrimitive(outerWay);
 	
 	beams = new Vector<Beam>();
@@ -93,13 +94,9 @@ public class IndoorSweeplineModel
     
     public void updateOsmModel()
     {
-	double offset = 0;
-	for (int i = 0; i < strips.size(); ++i)
-	{
-	    offset += strips.elementAt(i).width;
-	    if (i + 1 < beams.size())
-		beams.elementAt(i + 1).adjustNodes(addMetersToLon(center, offset));
-	}
+	adjustNodePositions();
+	
+	adjustUnsymmetricStripCompensation();
     
 	List<Node> nodes = new Vector<Node>();
 	
@@ -192,6 +189,7 @@ public class IndoorSweeplineModel
     private LatLon center;
     // AbstractDatasetChangedEvent
     private Way outerWay;
+    private Vector<Node> nodePool;
     
     private Vector<Beam> beams;
     private Vector<Strip> strips;
@@ -216,5 +214,69 @@ public class IndoorSweeplineModel
     {
 	double scale = Math.cos(latLon.lat() * (Math.PI/180.));
 	return latLon.lon() + east / scale *(360./4e7);
+    }
+
+    
+    private void adjustNodePositions()
+    {
+	double offset = 0;
+	for (int i = 0; i < strips.size(); ++i)
+	{
+	    offset += strips.elementAt(i).width;
+	    if (i + 1 < beams.size())
+		beams.elementAt(i + 1).adjustNodes(addMetersToLon(center, offset));
+	}
+    }
+    
+    
+    private void assignCoor(int poolCount, LatLon latLon)
+    {
+	if (poolCount < nodePool.size())
+	    nodePool.elementAt(poolCount).setCoor(latLon);
+	else
+	{
+	    Node node = new Node(latLon);
+	    dataSet.addPrimitive(node);
+	    nodePool.add(node);
+	}
+    }
+    
+    
+    private void truncateNodePool(int poolCount)
+    {
+	for (int i = poolCount; i < nodePool.size(); ++i)
+	    nodePool.elementAt(i).setDeleted(true);
+	nodePool.setSize(poolCount);
+    }
+    
+    
+    private void adjustUnsymmetricStripCompensation()
+    {
+	int poolCount = 0;
+	for (int i = 0; i < strips.size(); ++i)
+	{
+	    Strip strip = strips.elementAt(i);
+	    if (strip.lhs.size() < strip.rhs.size())
+	    {
+		int j = strip.lhs.size();
+		while (j < strip.rhs.size())
+		{
+		    assignCoor(poolCount++, addMeterOffset(beams.elementAt(i).getFirstCoor(),
+			strip.rhs.elementAt(j), strip.width / 2.));
+		    j += 2;
+		}
+	    }
+	    else if (strip.rhs.size() < strip.lhs.size())
+	    {
+		int j = strip.rhs.size();
+		while (j < strip.lhs.size())
+		{
+		    assignCoor(poolCount++, addMeterOffset(beams.elementAt(i).getFirstCoor(),
+			strip.lhs.elementAt(j), strip.width / 2.));
+		    j += 2;
+		}
+	    }
+	}
+	truncateNodePool(poolCount);
     }
 }

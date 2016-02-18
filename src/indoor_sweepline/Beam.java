@@ -66,6 +66,12 @@ public class Beam
     {
 	return parts;
     }
+    
+    
+    public LatLon getFirstCoor()
+    {
+	return nodes.elementAt(0).getCoor();
+    }
 
     
     private CorridorPart.Type defaultType;
