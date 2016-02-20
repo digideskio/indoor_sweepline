@@ -18,9 +18,8 @@ public class IndoorSweeplineModel
     {
 	dataSet = activeLayer.data;
 	this.center = center;
-	outerWay = new Way();
+	wayPool = new Vector<Way>();
 	nodePool = new Vector<Node>();
-	activeLayer.data.addPrimitive(outerWay);
 	
 	beams = new Vector<Beam>();
 	strips = new Vector<Strip>();
@@ -62,6 +61,8 @@ public class IndoorSweeplineModel
     public void addStrip()
     {
 	strips.add(new Strip());
+	if (beams.size() > 1)
+	    beams.elementAt(beams.size()-1).setDefaultSide(CorridorPart.ReachableSide.ALL);
 	strips.elementAt(strips.size()-1).lhs = beams.elementAt(strips.size()-1).rightHandSideStrips();
 	updateOsmModel();
     }
@@ -95,18 +96,7 @@ public class IndoorSweeplineModel
     public void updateOsmModel()
     {
 	adjustNodePositions();
-	
-	adjustUnsymmetricStripCompensation();
-    
-	List<Node> nodes = new Vector<Node>();
-	
-	beams.get(0).addMedianNode(nodes);
-	for (int i = 0; i < beams.size(); ++i)
-	    beams.get(i).addSouthernNodes(nodes);
-	for (int i = beams.size()-1; i >= 0; --i)
-	    beams.get(i).addNorthernNodes(nodes);
-	    
-	outerWay.setNodes(nodes);
+	distributeWays();
 	Main.map.mapView.repaint();
     }
 
@@ -188,7 +178,7 @@ public class IndoorSweeplineModel
     private DataSet dataSet;
     private LatLon center;
     // AbstractDatasetChangedEvent
-    private Way outerWay;
+    private Vector<Way> wayPool;
     private Vector<Node> nodePool;
     
     private Vector<Beam> beams;
@@ -250,33 +240,120 @@ public class IndoorSweeplineModel
     }
     
     
-    private void adjustUnsymmetricStripCompensation()
+    private void assignNds(int poolCount, List<Node> nodes)
     {
-	int poolCount = 0;
-	for (int i = 0; i < strips.size(); ++i)
+	if (poolCount < wayPool.size())
+	    wayPool.elementAt(poolCount).setNodes(nodes);
+	else
 	{
-	    Strip strip = strips.elementAt(i);
-	    if (strip.lhs.size() < strip.rhs.size())
-	    {
-		int j = strip.lhs.size();
-		while (j < strip.rhs.size())
-		{
-		    assignCoor(poolCount++, addMeterOffset(beams.elementAt(i).getFirstCoor(),
-			strip.rhs.elementAt(j), strip.width / 2.));
-		    j += 2;
-		}
-	    }
-	    else if (strip.rhs.size() < strip.lhs.size())
-	    {
-		int j = strip.rhs.size();
-		while (j < strip.lhs.size())
-		{
-		    assignCoor(poolCount++, addMeterOffset(beams.elementAt(i).getFirstCoor(),
-			strip.lhs.elementAt(j), strip.width / 2.));
-		    j += 2;
-		}
-	    }
+	    Way way = new Way();
+	    way.setNodes(nodes);
+	    dataSet.addPrimitive(way);
+	    wayPool.add(way);
 	}
-	truncateNodePool(poolCount);
+    }
+    
+    
+    private void truncateWayPool(int poolCount)
+    {
+	for (int i = poolCount; i < wayPool.size(); ++i)
+	    wayPool.elementAt(i).setDeleted(true);
+	wayPool.setSize(poolCount);
+    }
+    
+    
+    public class SweepPolygonCursor
+    {
+	public SweepPolygonCursor(int stripIndex, int partIndex)
+	{
+	    this.stripIndex = stripIndex;
+	    this.partIndex = partIndex;
+	}
+	
+	public boolean equals(SweepPolygonCursor rhs)
+	{
+	    return rhs != null
+		&& stripIndex == rhs.stripIndex && partIndex == rhs.partIndex;
+	}
+    
+	public int stripIndex;
+	public int partIndex;
+    }
+    
+    private void distributeWays()
+    {
+	Vector<Vector<Boolean>> stripRefs = new Vector<Vector<Boolean>>();
+	for (Strip strip : strips)
+	{
+	    Vector<Boolean> refs = new Vector<Boolean>();
+	    if (strip.lhs.size() < strip.rhs.size())
+		refs.setSize(strip.rhs.size());
+	    else
+		refs.setSize(strip.lhs.size());
+	    stripRefs.add(refs);
+	}
+	
+	int wayPoolCount = 0;
+	nodePoolCount = 0;
+	Boolean truePtr = new Boolean(true);
+	for (int i = 0; i < stripRefs.size(); ++i)
+	{
+	    Vector<Boolean> refs = stripRefs.elementAt(i);
+	    for (int j = 0; j < refs.size(); ++j)
+	    {
+		if (refs.elementAt(j) == null)
+		{
+		    SweepPolygonCursor start = new SweepPolygonCursor(i, j);
+		    SweepPolygonCursor cursor = new SweepPolygonCursor(i, j);
+		    Vector<Node> nodes = new Vector<Node>();
+		    
+		    boolean toTheLeft = true;
+		    do
+		    {
+			System.out.println("A " + cursor.stripIndex + " " + cursor.partIndex);
+			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
+			if (toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).lhs.size())
+			    toTheLeft = beams.elementAt(cursor.stripIndex).appendNodes(cursor, toTheLeft, nodes);
+			else if (!toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).rhs.size())
+			    toTheLeft = beams.elementAt(cursor.stripIndex + 1).appendNodes(cursor, toTheLeft, nodes);
+			else
+			    toTheLeft = appendUturn(cursor, toTheLeft, nodes);
+		    }
+		    while (!cursor.equals(start));
+		    
+		    if (nodes.size() > 0)
+			nodes.add(nodes.elementAt(0));
+		    assignNds(wayPoolCount++, nodes);
+		}
+		System.out.println("C");
+	    }
+	    System.out.println("D");
+	}
+	System.out.println("E");
+	
+	truncateNodePool(nodePoolCount);
+	truncateWayPool(wayPoolCount);
+    }
+    
+    
+    private int nodePoolCount;
+    
+    private boolean appendUturn(SweepPolygonCursor cursor, boolean toTheLeft, List<Node> nodes)
+    {
+	Strip strip = strips.elementAt(cursor.stripIndex);
+	if (strip.rhs.size() < strip.lhs.size())
+	    assignCoor(nodePoolCount, addMeterOffset(beams.elementAt(cursor.stripIndex).getFirstCoor(),
+		strip.lhs.elementAt(cursor.partIndex / 2 * 2), strip.width / 2.));
+	else
+	    assignCoor(nodePoolCount, addMeterOffset(beams.elementAt(cursor.stripIndex).getFirstCoor(),
+		strip.rhs.elementAt(cursor.partIndex / 2 * 2), strip.width / 2.));
+	nodes.add(nodePool.elementAt(nodePoolCount));
+	++nodePoolCount;
+	
+	if (cursor.partIndex % 2 == 0)
+	    ++cursor.partIndex;
+	else
+	    --cursor.partIndex;
+	return !toTheLeft;
     }
 }
