@@ -138,7 +138,8 @@ public class Beam
 	    }
 	    else /*if (parts.elementAt(i).type == CorridorPart.Type.WALL)*/
 	    {
-		if (i == 0 || parts.elementAt(i-1).type == CorridorPart.Type.VOID)
+		if ((i == 0 && parts.elementAt(0).type != CorridorPart.Type.VOID)
+		    || (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.VOID))
 		{
 		    if (parts.elementAt(i).side == CorridorPart.ReachableSide.LEFT)
 			lhsStrips.add(new StripPosition(i, offset));
@@ -184,21 +185,16 @@ public class Beam
 
     public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight, List<Node> nodes)
     {
-	System.out.println("F " + cursor + " " + fromRight);
-	if (cursor.partIndex % 2 == 0)
-	{
-	    if (fromRight)
-	    {
-		int i = countUp(rhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, true, rhsStrips, lhsStrips);
-	    }
-	    else
-	    {
-		int i = countUp(lhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, true, lhsStrips, rhsStrips);
-	    }
-	}
-	else
+	System.out.println("F " + cursor.stripIndex + " " + cursor.partIndex + " " + fromRight + " " + lhsStrips.size() + " " + rhsStrips.size());
+	if (cursor.partIndex > 0 &&
+	    ((fromRight
+		&& parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.VOID
+		&& (parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.PASSAGE
+		    || defaultSide != CorridorPart.ReachableSide.ALL))
+	    || (!fromRight
+		&& parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.VOID
+		&& (parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.PASSAGE
+		    || defaultSide != CorridorPart.ReachableSide.ALL))))
 	{
 	    if (fromRight)
 	    {
@@ -209,6 +205,19 @@ public class Beam
 	    {
 		int i = countDown(lhsStrips, cursor.partIndex, nodes);
 		return updateCursor(cursor, i, fromRight, false, lhsStrips, rhsStrips);
+	    }
+	}
+	else
+	{
+	    if (fromRight)
+	    {
+		int i = countUp(rhsStrips, cursor.partIndex, nodes);
+		return updateCursor(cursor, i, fromRight, true, rhsStrips, lhsStrips);
+	    }
+	    else
+	    {
+		int i = countUp(lhsStrips, cursor.partIndex, nodes);
+		return updateCursor(cursor, i, fromRight, true, lhsStrips, rhsStrips);
 	    }
 	}
     }
@@ -236,6 +245,8 @@ public class Beam
     {
 	int i = strips.elementAt(partIndex).nodeIndex;
 	nodes.add(this.nodes.elementAt(i));
+	if (i > 0)
+	    System.out.println("H " + i + " " + parts.elementAt(i-1).type + " " + defaultSide);
 	while (i > 0 && parts.elementAt(i-1).type != CorridorPart.Type.VOID
 		&& (parts.elementAt(i-1).type != CorridorPart.Type.PASSAGE
 		    || defaultSide != CorridorPart.ReachableSide.ALL))
