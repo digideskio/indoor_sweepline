@@ -33,8 +33,56 @@ public class CorridorPart
 	this.side = side;
     }
     
+    
+    public boolean isObstacle(ReachableSide beamSide)
+    {
+	if (type == Type.VOID)
+	    return false;
+	if (type == Type.PASSAGE)
+	    return (beamSide != ReachableSide.ALL);
+	return true;
+    }
+    
+    
+    public Type getType()
+    {
+	return type;
+    }
+    
+    public void setType(Type type, ReachableSide beamSide)
+    {
+	this.type = type;
+	adjustSideType(beamSide);
+    }
+    
+    
+    public ReachableSide getSide()
+    {
+	return side;
+    }
+    
+    public void setSide(ReachableSide side, ReachableSide beamSide)
+    {
+	this.side = side;
+	adjustSideType(beamSide);
+    }
+    
 
     public double width;
-    public Type type;
-    public ReachableSide side;
+    private Type type;
+    private ReachableSide side;
+    
+    
+    private void adjustSideType(ReachableSide beamSide)
+    {
+	if (type == Type.WALL && side == ReachableSide.ALL)
+	{
+	    if (beamSide == ReachableSide.RIGHT)
+		side = ReachableSide.RIGHT;
+	    else
+		side = ReachableSide.LEFT;
+	}
+	else if (type == Type.PASSAGE)
+	    side = ReachableSide.ALL;
+    }
 }

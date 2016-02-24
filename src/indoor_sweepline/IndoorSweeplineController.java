@@ -78,9 +78,9 @@ public class IndoorSweeplineController implements MapView.LayerChangeListener
 	return model.getBeamParts(index);
     }
     
-    public void addCorridorPart(int beamIndex, double value)
+    public void addCorridorPart(int beamIndex, boolean append, double value)
     {
-	model.addCorridorPart(beamIndex, value);
+	model.addCorridorPart(beamIndex, append, value);
     }
     
     public void setCorridorPartWidth(int beamIndex, int partIndex, double value)

@@ -62,7 +62,10 @@ public class IndoorSweeplineModel
     {
 	strips.add(new Strip());
 	if (beams.size() > 1)
+	{
 	    beams.elementAt(beams.size()-1).setDefaultSide(CorridorPart.ReachableSide.ALL);
+	    strips.elementAt(strips.size()-2).lhs = beams.elementAt(strips.size()-1).leftHandSideStrips();
+	}
 	strips.elementAt(strips.size()-1).lhs = beams.elementAt(strips.size()-1).rightHandSideStrips();
 	updateOsmModel();
     }
@@ -126,9 +129,9 @@ public class IndoorSweeplineModel
     }
 
     
-    public void addCorridorPart(int beamIndex, double value)
+    public void addCorridorPart(int beamIndex, boolean append, double value)
     {
-	beams.elementAt(beamIndex / 2).addCorridorPart(value);
+	beams.elementAt(beamIndex / 2).addCorridorPart(append, value);
 	if (beamIndex / 2 > 0)
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
 	if (beamIndex / 2 < strips.size())
@@ -303,12 +306,11 @@ public class IndoorSweeplineModel
 	    {
 		if (refs.elementAt(j) == null)
 		{
-		    SweepPolygonCursor start = new SweepPolygonCursor(i, j);
 		    SweepPolygonCursor cursor = new SweepPolygonCursor(i, j);
 		    Vector<Node> nodes = new Vector<Node>();
 		    
 		    boolean toTheLeft = true;
-		    do
+		    while (stripRefs.elementAt(cursor.stripIndex).elementAt(cursor.partIndex) == null)
 		    {
 			System.out.println("A " + cursor.stripIndex + " " + cursor.partIndex);
 			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
@@ -319,7 +321,6 @@ public class IndoorSweeplineModel
 			else
 			    toTheLeft = appendUturn(cursor, toTheLeft, nodes);
 		    }
-		    while (!cursor.equals(start));
 		    
 		    if (nodes.size() > 0)
 			nodes.add(nodes.elementAt(0));
@@ -331,8 +332,8 @@ public class IndoorSweeplineModel
 	}
 	System.out.println("E");
 	
-	truncateNodePool(nodePoolCount);
 	truncateWayPool(wayPoolCount);
+	truncateNodePool(nodePoolCount);
     }
     
     

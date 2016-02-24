@@ -95,16 +95,22 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	structureTableModel.setRowCount(0);
 	if (beamIndex % 2 == 0)
 	{
+	    Vector<Object> row = new Vector<Object>();
+	    row.addElement("");
+	    row.addElement("");
+	    row.addElement("");
+	    structureTableModel.addRow(row);
+	    
 	    List<CorridorPart> parts = controller.getBeamParts(beamIndex);
 	    for (CorridorPart part : parts)
 	    {
-		Vector<Object> row = new Vector<Object>();
+		row = new Vector<Object>();
 		row.addElement(Double.toString(part.width));
-		row.addElement(corridorPartTypeToString(part.type));
-		row.addElement(corridorPartSideToString(part.side));
+		row.addElement(corridorPartTypeToString(part.getType()));
+		row.addElement(corridorPartSideToString(part.getSide()));
 		structureTableModel.addRow(row);
 	    }
-	    Vector<Object> row = new Vector<Object>();
+	    row = new Vector<Object>();
 	    row.addElement("");
 	    row.addElement("");
 	    row.addElement("");
@@ -363,11 +369,11 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    {
 		try
 		{
-		    if (row == structureTableModel.getRowCount() - 1)
-			controller.addCorridorPart(beamIndex,
+		    if (row == 0 || row == structureTableModel.getRowCount() - 1)
+			controller.addCorridorPart(beamIndex, row != 0,
 			    Double.parseDouble(((TableModel)e.getSource()).getValueAt(row, column).toString()));
 		    else
-			controller.setCorridorPartWidth(beamIndex, row,
+			controller.setCorridorPartWidth(beamIndex, row - 1,
 			    Double.parseDouble(((TableModel)e.getSource()).getValueAt(row, column).toString()));
 		}
 		catch (NumberFormatException ex)
@@ -376,8 +382,8 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    }
 	    else if (column == 1 && beamIndex % 2 == 0)
 	    {
-		if (row < structureTableModel.getRowCount() - 1)
-		    controller.setCorridorPartType(beamIndex, row,
+		if (row > 0 && row < structureTableModel.getRowCount() - 1)
+		    controller.setCorridorPartType(beamIndex, row - 1,
 			parseCorridorPartType(((TableModel)e.getSource()).getValueAt(row, column).toString()));
 	    }
 	    else if (column == 1 && beamIndex % 2 == 1)
@@ -387,8 +393,8 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    }
 	    else if (column == 2 && beamIndex % 2 == 0)
 	    {
-		if (row < structureTableModel.getRowCount() - 1)
-		    controller.setCorridorPartSide(beamIndex, row,
+		if (row > 0 && row < structureTableModel.getRowCount() - 1)
+		    controller.setCorridorPartSide(beamIndex, row - 1,
 			parseCorridorPartSide(((TableModel)e.getSource()).getValueAt(row, column).toString()));
 	    }
 	    

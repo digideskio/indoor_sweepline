@@ -18,7 +18,7 @@ public class Beam
 	this.defaultSide = defaultSide;
 	
 	addNode(new Node(center), nodes);
-	addCorridorPart(width);
+	addCorridorPart(true, width);
 
 	this.nodes = nodes;
     }
@@ -27,7 +27,7 @@ public class Beam
     public void setDefaultSide(CorridorPart.ReachableSide defaultSide)
     {
 	this.defaultSide = defaultSide;
-	adjustStripCache(defaultSide);
+	adjustStripCache();
     }
     
 
@@ -62,13 +62,15 @@ public class Beam
     }
 
     
-    public void addCorridorPart(double width)
+    public void addCorridorPart(boolean append, double width)
     {
-	parts.add(new CorridorPart(width, defaultType, defaultSide));
-	addNode(new Node(new LatLon(addMetersToLat(
-	    nodes.elementAt(nodes.size()-1).getCoor(), width), nodes.elementAt(nodes.size()-1).getCoor().lon())),
-	    nodes);
-	adjustStripCache(defaultSide);
+	if (append)
+	    parts.add(new CorridorPart(width, defaultType, defaultSide));
+	else
+	    parts.add(0, new CorridorPart(width, defaultType, defaultSide));;
+	addNode(new Node(nodes.elementAt(0).getCoor()), nodes);
+	adjustNodesInBeam();
+	adjustStripCache();
     }
 
     
@@ -76,25 +78,58 @@ public class Beam
     {
 	parts.elementAt(partIndex).width = value;
 	adjustNodesInBeam();
-	adjustStripCache(defaultSide);
+	adjustStripCache();
     }
 
     
     public void setCorridorPartType(int partIndex, CorridorPart.Type type)
     {
-	parts.elementAt(partIndex).type = type;
-	adjustStripCache(defaultSide);
+	parts.elementAt(partIndex).setType(type, defaultSide);
+	adjustStripCache();
     }
 
     
     public void setCorridorPartSide(int partIndex, CorridorPart.ReachableSide side)
     {
-	parts.elementAt(partIndex).side = side;
-	adjustStripCache(defaultSide);
+	parts.elementAt(partIndex).setSide(side, defaultSide);
+	adjustStripCache();
     }
     
     
-    private void adjustStripCache(CorridorPart.ReachableSide side)
+    private boolean isVoidAbove(int i)
+    {
+	return i == 0 || parts.elementAt(i-1).getType() == CorridorPart.Type.VOID;
+    }
+    
+    private boolean isVoidBelow(int i)
+    {
+	return i == parts.size() || parts.elementAt(i).getType() == CorridorPart.Type.VOID;
+    }
+    
+    private boolean isPassageAbove(int i)
+    {
+	return i > 0
+	    && parts.elementAt(i-1).getType() == CorridorPart.Type.PASSAGE
+	    && defaultSide == CorridorPart.ReachableSide.ALL;
+    }
+    
+    private boolean isPassageBelow(int i)
+    {
+	return i < parts.size()
+	    && parts.elementAt(i).getType() == CorridorPart.Type.PASSAGE
+	    && defaultSide == CorridorPart.ReachableSide.ALL;
+    }
+    
+    private boolean isReachableLeft(int i)
+    {
+	if (defaultSide == CorridorPart.ReachableSide.RIGHT)
+	    return false;
+	if (parts.elementAt(i).getSide() == CorridorPart.ReachableSide.LEFT)
+	    return true;
+	return defaultSide == CorridorPart.ReachableSide.LEFT;
+    }
+    
+    private void adjustStripCache()
     {
 	lhsStrips = new Vector<StripPosition>();
 	rhsStrips = new Vector<StripPosition>();
@@ -103,63 +138,74 @@ public class Beam
 	
 	for (int i = 0; i <= parts.size(); ++i)
 	{
-	    if (i == parts.size() || (parts.elementAt(i).type == CorridorPart.Type.VOID && i > 0))
+	    if (i == parts.size())
+		System.out.println("I " + defaultSide + " " + i + " " + offset);
+	    else
+		System.out.println("I " + defaultSide + " " + i + " " + offset + " " + parts.elementAt(i).getType() + " " + parts.elementAt(i).getSide());
+	    if (isVoidBelow(i))
 	    {
-		if (parts.elementAt(i-1).type == CorridorPart.Type.PASSAGE
-			&& side == CorridorPart.ReachableSide.ALL)
+		if (isPassageAbove(i))
 		{
+		    System.out.println("JA");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
-		else if (parts.elementAt(i-1).type != CorridorPart.Type.VOID)
+		else if (!isVoidAbove(i))
 		{
-		    if (parts.elementAt(i-1).side == CorridorPart.ReachableSide.LEFT)
+		    System.out.println("JB");
+		    if (isReachableLeft(i-1))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
 			rhsStrips.add(new StripPosition(i, offset));
 		}
+		else
+		    System.out.println("JC");
 	    }
-	    else if (parts.elementAt(i).type == CorridorPart.Type.PASSAGE
-			&& side == CorridorPart.ReachableSide.ALL)
+	    else if (isPassageBelow(i))
 	    {
-		if (i == 0 || parts.elementAt(i-1).type == CorridorPart.Type.VOID)
+		if (isVoidAbove(i))
 		{
+		    System.out.println("JD");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
-		else if (i > 0 && (parts.elementAt(i-1).type != CorridorPart.Type.PASSAGE
-			|| side != CorridorPart.ReachableSide.ALL))
+		else if (!isPassageAbove(i))
 		{
-		    if (parts.elementAt(i-1).side == CorridorPart.ReachableSide.LEFT)
+		    System.out.println("JE");
+		    if (isReachableLeft(i-1))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
 			lhsStrips.add(new StripPosition(i, offset));
 		}
+		else
+		    System.out.println("JF");
 	    }
-	    else /*if (parts.elementAt(i).type == CorridorPart.Type.WALL)*/
+	    else
 	    {
-		if ((i == 0 && parts.elementAt(0).type != CorridorPart.Type.VOID)
-		    || (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.VOID))
+		if (isVoidAbove(i))
 		{
-		    if (parts.elementAt(i).side == CorridorPart.ReachableSide.LEFT)
+		    System.out.println("JG");
+		    if (isReachableLeft(i))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
 			rhsStrips.add(new StripPosition(i, offset));
 		}
-		else if (i > 0 && parts.elementAt(i-1).type == CorridorPart.Type.PASSAGE
-			&& side == CorridorPart.ReachableSide.ALL)
+		else if (isPassageAbove(i))
 		{
-		    if (parts.elementAt(i).side == CorridorPart.ReachableSide.LEFT)
+		    System.out.println("JH");
+		    if (isReachableLeft(i))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
 			lhsStrips.add(new StripPosition(i, offset));
 		}
+		else
+		    System.out.println("JI");
 	    }
 	    
 	    if (i < parts.size())
 		offset += parts.elementAt(i).width;
 	}
-	System.out.println("B " + side + " " + lhsStrips.size() + " " + rhsStrips.size());
+	System.out.println("B " + defaultSide + " " + lhsStrips.size() + " " + rhsStrips.size());
     }
     
     
@@ -186,33 +232,27 @@ public class Beam
     public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight, List<Node> nodes)
     {
 	System.out.println("F " + cursor.stripIndex + " " + cursor.partIndex + " " + fromRight + " " + lhsStrips.size() + " " + rhsStrips.size());
-	if (cursor.partIndex > 0 &&
-	    ((fromRight
-		&& parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.VOID
-		&& (parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.PASSAGE
-		    || defaultSide != CorridorPart.ReachableSide.ALL))
-	    || (!fromRight
-		&& parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.VOID
-		&& (parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).type != CorridorPart.Type.PASSAGE
-		    || defaultSide != CorridorPart.ReachableSide.ALL))))
+	if (fromRight)
 	{
-	    if (fromRight)
+	    if (rhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
+		parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
 	    {
 		int i = countDown(rhsStrips, cursor.partIndex, nodes);
 		return updateCursor(cursor, i, fromRight, false, rhsStrips, lhsStrips);
 	    }
 	    else
 	    {
-		int i = countDown(lhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, false, lhsStrips, rhsStrips);
+		int i = countUp(rhsStrips, cursor.partIndex, nodes);
+		return updateCursor(cursor, i, fromRight, true, rhsStrips, lhsStrips);
 	    }
 	}
 	else
 	{
-	    if (fromRight)
+	    if (lhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
+		parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
 	    {
-		int i = countUp(rhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, true, rhsStrips, lhsStrips);
+		int i = countDown(lhsStrips, cursor.partIndex, nodes);
+		return updateCursor(cursor, i, fromRight, false, lhsStrips, rhsStrips);
 	    }
 	    else
 	    {
@@ -231,9 +271,7 @@ public class Beam
     {
 	int i = strips.elementAt(partIndex).nodeIndex;
 	nodes.add(this.nodes.elementAt(i));
-	while (i < parts.size() && parts.elementAt(i).type != CorridorPart.Type.VOID
-		&& (parts.elementAt(i).type != CorridorPart.Type.PASSAGE
-		    || defaultSide != CorridorPart.ReachableSide.ALL))
+	while (i < parts.size() && parts.elementAt(i).isObstacle(defaultSide))
 	{
 	    ++i;
 	    nodes.add(this.nodes.elementAt(i));
@@ -241,21 +279,19 @@ public class Beam
 	return i;
     }
     
+    
     private int countDown(Vector<StripPosition> strips, int partIndex, List<Node> nodes)
     {
 	int i = strips.elementAt(partIndex).nodeIndex;
 	nodes.add(this.nodes.elementAt(i));
-	if (i > 0)
-	    System.out.println("H " + i + " " + parts.elementAt(i-1).type + " " + defaultSide);
-	while (i > 0 && parts.elementAt(i-1).type != CorridorPart.Type.VOID
-		&& (parts.elementAt(i-1).type != CorridorPart.Type.PASSAGE
-		    || defaultSide != CorridorPart.ReachableSide.ALL))
+	while (i > 0 && parts.elementAt(i-1).isObstacle(defaultSide))
 	{
 	    --i;
 	    nodes.add(this.nodes.elementAt(i));
 	}
 	return i;
     }
+    
     
     private static boolean updateCursor(IndoorSweeplineModel.SweepPolygonCursor cursor, int i,
 	boolean fromRight, boolean goingUp, Vector<StripPosition> sameStrips, Vector<StripPosition> oppositeStrips)
