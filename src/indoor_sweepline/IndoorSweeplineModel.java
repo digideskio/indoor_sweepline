@@ -312,7 +312,6 @@ public class IndoorSweeplineModel
 		    boolean toTheLeft = true;
 		    while (stripRefs.elementAt(cursor.stripIndex).elementAt(cursor.partIndex) == null)
 		    {
-			System.out.println("A " + cursor.stripIndex + " " + cursor.partIndex);
 			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
 			if (toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).lhs.size())
 			    toTheLeft = beams.elementAt(cursor.stripIndex).appendNodes(cursor, toTheLeft, nodes);
@@ -326,11 +325,8 @@ public class IndoorSweeplineModel
 			nodes.add(nodes.elementAt(0));
 		    assignNds(wayPoolCount++, nodes);
 		}
-		System.out.println("C");
 	    }
-	    System.out.println("D");
 	}
-	System.out.println("E");
 	
 	truncateWayPool(wayPoolCount);
 	truncateNodePool(nodePoolCount);

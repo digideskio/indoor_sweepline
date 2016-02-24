@@ -67,7 +67,7 @@ public class Beam
 	if (append)
 	    parts.add(new CorridorPart(width, defaultType, defaultSide));
 	else
-	    parts.add(0, new CorridorPart(width, defaultType, defaultSide));;
+	    parts.add(0, new CorridorPart(width, defaultType, defaultSide));
 	addNode(new Node(nodes.elementAt(0).getCoor()), nodes);
 	adjustNodesInBeam();
 	adjustStripCache();
@@ -138,53 +138,40 @@ public class Beam
 	
 	for (int i = 0; i <= parts.size(); ++i)
 	{
-	    if (i == parts.size())
-		System.out.println("I " + defaultSide + " " + i + " " + offset);
-	    else
-		System.out.println("I " + defaultSide + " " + i + " " + offset + " " + parts.elementAt(i).getType() + " " + parts.elementAt(i).getSide());
 	    if (isVoidBelow(i))
 	    {
 		if (isPassageAbove(i))
 		{
-		    System.out.println("JA");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
 		else if (!isVoidAbove(i))
 		{
-		    System.out.println("JB");
 		    if (isReachableLeft(i-1))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
 			rhsStrips.add(new StripPosition(i, offset));
 		}
-		else
-		    System.out.println("JC");
 	    }
 	    else if (isPassageBelow(i))
 	    {
 		if (isVoidAbove(i))
 		{
-		    System.out.println("JD");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
 		else if (!isPassageAbove(i))
 		{
-		    System.out.println("JE");
 		    if (isReachableLeft(i-1))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
 			lhsStrips.add(new StripPosition(i, offset));
 		}
-		else
-		    System.out.println("JF");
 	    }
 	    else
 	    {
 		if (isVoidAbove(i))
 		{
-		    System.out.println("JG");
 		    if (isReachableLeft(i))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -192,20 +179,16 @@ public class Beam
 		}
 		else if (isPassageAbove(i))
 		{
-		    System.out.println("JH");
 		    if (isReachableLeft(i))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
 			lhsStrips.add(new StripPosition(i, offset));
 		}
-		else
-		    System.out.println("JI");
 	    }
 	    
 	    if (i < parts.size())
 		offset += parts.elementAt(i).width;
 	}
-	System.out.println("B " + defaultSide + " " + lhsStrips.size() + " " + rhsStrips.size());
     }
     
     
@@ -231,7 +214,6 @@ public class Beam
 
     public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight, List<Node> nodes)
     {
-	System.out.println("F " + cursor.stripIndex + " " + cursor.partIndex + " " + fromRight + " " + lhsStrips.size() + " " + rhsStrips.size());
 	if (fromRight)
 	{
 	    if (rhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
@@ -300,7 +282,6 @@ public class Beam
 	{
 	    if (cursor.partIndex+1 < sameStrips.size() && sameStrips.elementAt(cursor.partIndex+1).nodeIndex == i)
 	    {
-		System.out.println("GA");
 		++cursor.partIndex;
 		return !fromRight;
 	    }
@@ -309,7 +290,6 @@ public class Beam
 	{
 	    if (cursor.partIndex > 0 && sameStrips.elementAt(cursor.partIndex-1).nodeIndex == i)
 	    {
-		System.out.println("GB");
 		--cursor.partIndex;
 		return !fromRight;
 	    }
@@ -319,7 +299,6 @@ public class Beam
 	while (j < oppositeStrips.size() && oppositeStrips.elementAt(j).nodeIndex < i)
 	    ++j;
 	cursor.partIndex = j;
-	System.out.println("G " + i + " " + goingUp + " " + j + " " + fromRight);
 	if (fromRight)
 	    --cursor.stripIndex;
 	else
