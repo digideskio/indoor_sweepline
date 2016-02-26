@@ -5,6 +5,7 @@ import java.util.Vector;
 import org.openstreetmap.josm.data.coor.LatLon;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
+import org.openstreetmap.josm.data.osm.Way;
 
 
 public class CorridorPart
@@ -14,7 +15,9 @@ public class CorridorPart
 	VOID,
 	PASSAGE,
 	WALL,
-	STAIRS
+	STAIRS,
+	ESCALATOR,
+	ELEVATOR
     }
     
 
@@ -72,25 +75,110 @@ public class CorridorPart
     }
     
     
+    private void setExtraElements(Node from, Node to)
+    {
+	LatLon middleCoor = new LatLon((from.getCoor().lat() + to.getCoor().lat())/2.,
+	    (from.getCoor().lon() + to.getCoor().lon())/2.);
+	if (middleNode == null)
+	{
+	    middleNode = new Node(middleCoor);
+	    dataSet.addPrimitive(middleNode);
+	}
+	else
+	    middleNode.setCoor(middleCoor);
+	    
+	LatLon start = from.getCoor();
+	if (side == ReachableSide.LEFT)
+	{
+	    if (start.lat() < middleCoor.lat())
+		start = to.getCoor();
+	}
+	else if (side == ReachableSide.RIGHT)
+	{
+	    if (middleCoor.lat() < start.lat())
+		start = to.getCoor();
+	}
+	else if (side == ReachableSide.FRONT)
+	{
+	    if (middleCoor.lon() < start.lon())
+		start = to.getCoor();
+	}
+	else if (side == ReachableSide.BACK)
+	{
+	    if (start.lon() < middleCoor.lon())
+		start = to.getCoor();
+	}
+	    
+	double scale = Math.cos(middleCoor.lat() * (Math.PI/180.));
+	LatLon detachedCoor = new LatLon(middleCoor.lat() + (start.lon() - middleCoor.lon()) * scale,
+	    middleCoor.lon() + (start.lat() - middleCoor.lat()) / scale);
+	if (detachedNode == null)
+	{
+	    detachedNode = new Node(detachedCoor);
+	    dataSet.addPrimitive(detachedNode);
+	}
+	else
+	    detachedNode.setCoor(detachedCoor);
+	
+	Vector<Node> extraWayNodes = new Vector<Node>();
+	extraWayNodes.add(middleNode);
+	extraWayNodes.add(detachedNode);
+	if (extraWay == null)
+	{
+	    extraWay = new Way();
+	    extraWay.setNodes(extraWayNodes);
+	    dataSet.addPrimitive(extraWay);
+	}
+	else
+	    extraWay.setNodes(extraWayNodes);
+    }
+    
+    
     public void appendNodes(Node from, Node to, List<Node> nodes)
     {
 	if (type == Type.STAIRS)
 	{
-	    LatLon middleCoor = new LatLon((from.getCoor().lat() + to.getCoor().lat())/2.,
-		(from.getCoor().lon() + to.getCoor().lon())/2.);
-	    if (middleNode == null)
-	    {
-		middleNode = new Node(middleCoor);
-		dataSet.addPrimitive(middleNode);
-	    }
-	    else
-		middleNode.setCoor(middleCoor);
+	    setExtraElements(from, to);
 	    nodes.add(middleNode);
+
+	    extraWay.put("highway", "steps");
+	    extraWay.put("incline", "up;down");
+	}
+	else if (type == Type.ESCALATOR)
+	{
+	    setExtraElements(from, to);
+	    nodes.add(middleNode);
+
+	    extraWay.put("highway", "steps");
+	    extraWay.put("incline", "up;down");
+	    extraWay.put("conveying", "forward;backward");
+	}
+	else if (type == Type.ELEVATOR)
+	{
+	    setExtraElements(from, to);
+	    nodes.add(middleNode);
+
+	    detachedNode.put("highway", "elevator");
+	    
+	    extraWay.put("highway", "footway");
 	}
 	else
 	{
 	    if (middleNode != null)
+	    {
 		middleNode.setDeleted(true);
+		middleNode = null;
+	    }
+	    if (detachedNode != null)
+	    {
+		detachedNode.setDeleted(true);
+		detachedNode = null;
+	    }
+	    if (extraWay != null)
+	    {
+		extraWay.setDeleted(true);
+		extraWay = null;
+	    }
 	}
     }
     
@@ -102,6 +190,7 @@ public class CorridorPart
     private DataSet dataSet;
     private Node middleNode;
     private Node detachedNode;
+    private Way extraWay;
     
     
     private void adjustSideType(ReachableSide beamSide)

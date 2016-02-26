@@ -248,7 +248,6 @@ public class Beam
 	{
 	    if (nodes.size() > 0)
 	    {
-		System.out.println(lhsStrips.size() + " " + cursor.partIndex);
 		strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
 		    appendNodes(nodes.elementAt(nodes.size()-1),
 			this.nodes.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex), nodes);
