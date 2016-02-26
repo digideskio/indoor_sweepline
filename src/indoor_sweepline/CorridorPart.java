@@ -3,6 +3,7 @@ package indoor_sweepline;
 import java.util.List;
 import java.util.Vector;
 import org.openstreetmap.josm.data.coor.LatLon;
+import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
 
 
@@ -12,7 +13,8 @@ public class CorridorPart
     {
 	VOID,
 	PASSAGE,
-	WALL
+	WALL,
+	STAIRS
     }
     
 
@@ -26,11 +28,13 @@ public class CorridorPart
     }
     
 
-    public CorridorPart(double width, Type type, ReachableSide side)
+    public CorridorPart(double width, Type type, ReachableSide side, DataSet dataSet)
     {
 	this.width = width;
 	this.type = type;
 	this.side = side;
+	
+	this.dataSet = dataSet;
     }
     
     
@@ -67,15 +71,42 @@ public class CorridorPart
 	adjustSideType(beamSide);
     }
     
+    
+    public void appendNodes(Node from, Node to, List<Node> nodes)
+    {
+	if (type == Type.STAIRS)
+	{
+	    LatLon middleCoor = new LatLon((from.getCoor().lat() + to.getCoor().lat())/2.,
+		(from.getCoor().lon() + to.getCoor().lon())/2.);
+	    if (middleNode == null)
+	    {
+		middleNode = new Node(middleCoor);
+		dataSet.addPrimitive(middleNode);
+	    }
+	    else
+		middleNode.setCoor(middleCoor);
+	    nodes.add(middleNode);
+	}
+	else
+	{
+	    if (middleNode != null)
+		middleNode.setDeleted(true);
+	}
+    }
+    
 
     public double width;
     private Type type;
     private ReachableSide side;
     
+    private DataSet dataSet;
+    private Node middleNode;
+    private Node detachedNode;
+    
     
     private void adjustSideType(ReachableSide beamSide)
     {
-	if (type == Type.WALL && side == ReachableSide.ALL)
+	if ((type == Type.WALL || type == Type.STAIRS) && side == ReachableSide.ALL)
 	{
 	    if (beamSide == ReachableSide.RIGHT)
 		side = ReachableSide.RIGHT;

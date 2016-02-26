@@ -65,9 +65,9 @@ public class Beam
     public void addCorridorPart(boolean append, double width)
     {
 	if (append)
-	    parts.add(new CorridorPart(width, defaultType, defaultSide));
+	    parts.add(new CorridorPart(width, defaultType, defaultSide, dataSet));
 	else
-	    parts.add(0, new CorridorPart(width, defaultType, defaultSide));
+	    parts.add(0, new CorridorPart(width, defaultType, defaultSide, dataSet));
 	addNode(new Node(nodes.elementAt(0).getCoor()), nodes);
 	adjustNodesInBeam();
 	adjustStripCache();
@@ -93,6 +93,17 @@ public class Beam
     {
 	parts.elementAt(partIndex).setSide(side, defaultSide);
 	adjustStripCache();
+    }
+    
+    
+    public Node lhsNode(int i)
+    {
+	return nodes.elementAt(lhsStrips.elementAt(i).nodeIndex);
+    }
+    
+    public Node rhsNode(int i)
+    {
+	return nodes.elementAt(rhsStrips.elementAt(i).nodeIndex);
     }
     
     
@@ -212,10 +223,15 @@ public class Beam
     }
     
 
-    public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight, List<Node> nodes)
+    public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight, Vector<Node> nodes,
+	Vector<Strip> strips)
     {
 	if (fromRight)
 	{
+	    if (nodes.size() > 0)
+		strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
+		    appendNodes(nodes.elementAt(nodes.size()-1),
+			this.nodes.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex), nodes);
 	    if (rhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
 		parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
 	    {
@@ -230,6 +246,13 @@ public class Beam
 	}
 	else
 	{
+	    if (nodes.size() > 0)
+	    {
+		System.out.println(lhsStrips.size() + " " + cursor.partIndex);
+		strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
+		    appendNodes(nodes.elementAt(nodes.size()-1),
+			this.nodes.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex), nodes);
+	    }
 	    if (lhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
 		parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
 	    {
@@ -255,6 +278,7 @@ public class Beam
 	nodes.add(this.nodes.elementAt(i));
 	while (i < parts.size() && parts.elementAt(i).isObstacle(defaultSide))
 	{
+	    parts.elementAt(i).appendNodes(this.nodes.elementAt(i), this.nodes.elementAt(i+1), nodes);
 	    ++i;
 	    nodes.add(this.nodes.elementAt(i));
 	}
@@ -268,6 +292,7 @@ public class Beam
 	nodes.add(this.nodes.elementAt(i));
 	while (i > 0 && parts.elementAt(i-1).isObstacle(defaultSide))
 	{
+	    parts.elementAt(i-1).appendNodes(this.nodes.elementAt(i-1), this.nodes.elementAt(i), nodes);
 	    --i;
 	    nodes.add(this.nodes.elementAt(i));
 	}

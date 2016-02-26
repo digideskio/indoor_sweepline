@@ -127,7 +127,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
 		position += " - " + (i < strip.rhs.size() ? strip.rhs.elementAt(i).toString() : "X");
 		row.addElement(position);
 		row.addElement(i < strip.parts.size() ?
-		    corridorPartTypeToString(strip.parts.elementAt(i)) : "wall");
+		    corridorPartTypeToString(strip.parts.elementAt(i).getType()) : "wall");
 		row.addElement(i % 2 == 0 ? "down" : "up");
 		structureTableModel.addRow(row);
 	    }
@@ -146,6 +146,8 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    return "passage";
 	else if (type == CorridorPart.Type.WALL)
 	    return "wall";
+	else if (type == CorridorPart.Type.STAIRS)
+	    return "stairs";
 	return "";
     }
     
@@ -158,6 +160,8 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    return CorridorPart.Type.PASSAGE;
 	else if (val == "wall")
 	    return CorridorPart.Type.WALL;
+	else if (val == "stairs")
+	    return CorridorPart.Type.STAIRS;
 	return CorridorPart.Type.VOID;
     }
     
@@ -344,6 +348,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	comboBox.addItem("void");
 	comboBox.addItem("passage");
 	comboBox.addItem("wall");
+	comboBox.addItem("stairs");
 	column.setCellEditor(new DefaultCellEditor(comboBox));
 
 	column = table.getColumnModel().getColumn(2);

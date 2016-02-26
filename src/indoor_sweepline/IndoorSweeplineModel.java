@@ -60,7 +60,7 @@ public class IndoorSweeplineModel
     
     public void addStrip()
     {
-	strips.add(new Strip());
+	strips.add(new Strip(dataSet));
 	if (beams.size() > 1)
 	{
 	    beams.elementAt(beams.size()-1).setDefaultSide(CorridorPart.ReachableSide.ALL);
@@ -314,15 +314,21 @@ public class IndoorSweeplineModel
 		    {
 			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
 			if (toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).lhs.size())
-			    toTheLeft = beams.elementAt(cursor.stripIndex).appendNodes(cursor, toTheLeft, nodes);
+			    toTheLeft = beams.elementAt(cursor.stripIndex).appendNodes(
+				cursor, toTheLeft, nodes, strips);
 			else if (!toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).rhs.size())
-			    toTheLeft = beams.elementAt(cursor.stripIndex + 1).appendNodes(cursor, toTheLeft, nodes);
+			    toTheLeft = beams.elementAt(cursor.stripIndex + 1).appendNodes(
+				cursor, toTheLeft, nodes, strips);
 			else
 			    toTheLeft = appendUturn(cursor, toTheLeft, nodes);
 		    }
 		    
 		    if (nodes.size() > 0)
+		    {
+			strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
+			    appendNodes(nodes.elementAt(nodes.size()-1), nodes.elementAt(0), nodes);
 			nodes.add(nodes.elementAt(0));
+		    }
 		    assignNds(wayPoolCount++, nodes);
 		}
 	    }
@@ -335,7 +341,7 @@ public class IndoorSweeplineModel
     
     private int nodePoolCount;
     
-    private boolean appendUturn(SweepPolygonCursor cursor, boolean toTheLeft, List<Node> nodes)
+    private boolean appendUturn(SweepPolygonCursor cursor, boolean toTheLeft, Vector<Node> nodes)
     {
 	Strip strip = strips.elementAt(cursor.stripIndex);
 	if (strip.rhs.size() < strip.lhs.size())
@@ -344,6 +350,9 @@ public class IndoorSweeplineModel
 	else
 	    assignCoor(nodePoolCount, addMeterOffset(beams.elementAt(cursor.stripIndex).getFirstCoor(),
 		strip.rhs.elementAt(cursor.partIndex / 2 * 2), strip.width / 2.));
+	if (nodes.size() > 0)
+	    strip.partAt(cursor.partIndex).
+		appendNodes(nodes.elementAt(nodes.size()-1), nodePool.elementAt(nodePoolCount), nodes);
 	nodes.add(nodePool.elementAt(nodePoolCount));
 	++nodePoolCount;
 	
