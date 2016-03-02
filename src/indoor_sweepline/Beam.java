@@ -168,13 +168,11 @@ public class Beam
 	    {
 		if (isPassageAbove(i))
 		{
-		    System.out.println("BA");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
 		else if (!isVoidAbove(i))
 		{
-		    System.out.println("BB");
 		    if (isReachableLeft(i-1))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -185,13 +183,11 @@ public class Beam
 	    {
 		if (isVoidAbove(i))
 		{
-		    System.out.println("BC");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
 		else if (!isPassageAbove(i))
 		{
-		    System.out.println("BD");
 		    if (isReachableLeft(i-1))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -202,7 +198,6 @@ public class Beam
 	    {
 		if (isVoidAbove(i))
 		{
-		    System.out.println("BE");
 		    if (isReachableLeft(i))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -210,7 +205,6 @@ public class Beam
 		}
 		else if (isPassageAbove(i))
 		{
-		    System.out.println("BF");
 		    if (isReachableLeft(i))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -221,7 +215,6 @@ public class Beam
 	    if (i < parts.size())
 		offset += parts.elementAt(i).width;
 	}
-	System.out.println("");
     }
     
     

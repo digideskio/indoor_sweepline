@@ -61,7 +61,6 @@ public class IndoorSweeplineModel
 	for (int i = 0; i < strips.size(); ++i)
 	    offset += strips.elementAt(i).width;
 	    
-	System.out.println("CA " + beams.size());
 	beams.add(new Beam(dataSet, new LatLon(center.lat(), addMetersToLon(center, offset)),
 	    width, side));
 	
@@ -74,20 +73,12 @@ public class IndoorSweeplineModel
     public void addStrip()
     {
 	strips.add(new Strip(dataSet));
-	for (Strip strip : strips)
-	    System.out.println("GA " + strip.lhs.size() + " " + strip.rhs.size());
 	if (beams.size() > 1)
 	{
 	    beams.elementAt(beams.size()-1).setDefaultSide(CorridorPart.ReachableSide.ALL);
-	    for (Strip strip : strips)
-		System.out.println("GB " + strip.lhs.size() + " " + strip.rhs.size());
 	    strips.elementAt(strips.size()-2).rhs = beams.elementAt(strips.size()-1).leftHandSideStrips();
 	}
-	for (Strip strip : strips)
-	    System.out.println("GC " + strip.lhs.size() + " " + strip.rhs.size());
 	strips.elementAt(strips.size()-1).lhs = beams.elementAt(strips.size()-1).rightHandSideStrips();	    
-	for (Strip strip : strips)
-	    System.out.println("GD " + strip.lhs.size() + " " + strip.rhs.size());
 	updateOsmModel();
     }
 
@@ -119,14 +110,8 @@ public class IndoorSweeplineModel
     
     public void updateOsmModel()
     {
-	for (Strip strip : strips)
-	    System.out.println("FA " + strip.lhs.size() + " " + strip.rhs.size());
 	adjustNodePositions();
-	for (Strip strip : strips)
-	    System.out.println("FB " + strip.lhs.size() + " " + strip.rhs.size());
 	distributeWays();
-	for (Strip strip : strips)
-	    System.out.println("FC " + strip.lhs.size() + " " + strip.rhs.size());
 	adjustMultipolygonRelation();
 	Main.map.mapView.repaint();
     }
@@ -159,7 +144,6 @@ public class IndoorSweeplineModel
     
     public void addCorridorPart(int beamIndex, boolean append, double value)
     {
-	System.out.println("CC " + beamIndex / 2);
 	beams.elementAt(beamIndex / 2).addCorridorPart(append, value);
 	if (beamIndex / 2 > 0)
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
@@ -171,7 +155,6 @@ public class IndoorSweeplineModel
     
     public void setCorridorPartWidth(int beamIndex, int partIndex, double value)
     {
-	System.out.println("CD " + beamIndex / 2);
 	beams.elementAt(beamIndex / 2).setCorridorPartWidth(partIndex, value);
 	if (beamIndex / 2 > 0)
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
@@ -185,7 +168,6 @@ public class IndoorSweeplineModel
     {
 	if (beamIndex % 2 == 0)
 	{
-	    System.out.println("CE " + beamIndex / 2);
 	    beams.elementAt(beamIndex / 2).setCorridorPartType(partIndex, type);
 	    if (beamIndex / 2 > 0)
 		strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
@@ -200,7 +182,6 @@ public class IndoorSweeplineModel
     
     public void setCorridorPartSide(int beamIndex, int partIndex, CorridorPart.ReachableSide side)
     {
-	System.out.println("CF " + beamIndex / 2);
 	beams.elementAt(beamIndex / 2).setCorridorPartSide(partIndex, side);
 	if (beamIndex / 2 > 0)
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
@@ -330,7 +311,6 @@ public class IndoorSweeplineModel
 		refs.setSize(strip.rhs.size());
 	    else
 		refs.setSize(strip.lhs.size());
-	    System.out.println("D " + (strip.lhs.size() < strip.rhs.size()) + " " + refs.size());
 	    stripRefs.add(refs);
 	}
 	
@@ -348,7 +328,6 @@ public class IndoorSweeplineModel
 		    Vector<Node> nodes = new Vector<Node>();
 		    
 		    boolean toTheLeft = true;
-		    System.out.println("EA " + cursor.stripIndex + " " + cursor.partIndex);
 		    while (stripRefs.elementAt(cursor.stripIndex).elementAt(cursor.partIndex) == null)
 		    {
 			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
@@ -360,7 +339,6 @@ public class IndoorSweeplineModel
 				cursor, toTheLeft, nodes, strips);
 			else
 			    toTheLeft = appendUturn(cursor, toTheLeft, nodes);
-			System.out.println("EB " + cursor.stripIndex + " " + cursor.partIndex);
 		    }
 		    
 		    if (nodes.size() > 0)

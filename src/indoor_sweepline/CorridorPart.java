@@ -208,6 +208,5 @@ public class CorridorPart
 	    else
 		side = ReachableSide.LEFT;
 	}
-	System.out.println("A " + type + " " + side);
     }
 }
