@@ -22,7 +22,7 @@ public class Strip
     {
 	while (parts.size() <= partIndex)
 	    parts.add(new CorridorPart(0., CorridorPart.Type.WALL,
-		partIndex % 2 == 0 ? CorridorPart.ReachableSide.FRONT :
+		parts.size() % 2 == 0 ? CorridorPart.ReachableSide.FRONT :
 		CorridorPart.ReachableSide.BACK, dataSet));
 	parts.elementAt(partIndex).setType(type, CorridorPart.ReachableSide.ALL);
     }
@@ -32,7 +32,7 @@ public class Strip
     {
 	while (parts.size() <= i)
 	    parts.add(new CorridorPart(0., CorridorPart.Type.WALL,
-		i % 2 == 0 ? CorridorPart.ReachableSide.FRONT : CorridorPart.ReachableSide.BACK, dataSet));
+		parts.size() % 2 == 0 ? CorridorPart.ReachableSide.FRONT : CorridorPart.ReachableSide.BACK, dataSet));
 	return parts.elementAt(i);
     }
     

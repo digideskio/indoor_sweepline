@@ -128,7 +128,8 @@ public class IndoorSweeplineWizardDialog extends JDialog
 		row.addElement(position);
 		row.addElement(i < strip.parts.size() ?
 		    corridorPartTypeToString(strip.parts.elementAt(i).getType()) : "wall");
-		row.addElement(i % 2 == 0 ? "down" : "up");
+		row.addElement(i < strip.parts.size() ?
+		    corridorPartSideToString(strip.parts.elementAt(i).getSide()) : "all");
 		structureTableModel.addRow(row);
 	    }
 	    structureTableModel.isBeam = false;

@@ -12,6 +12,14 @@ import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 
+/*
+TODO:
+- WALL mit anderer Orientierung als void behandeln
+- Multipolygone
+- Level propagieren
+*/
+
+
 public class IndoorSweeplineModel
 {
     public IndoorSweeplineModel(OsmDataLayer activeLayer, LatLon center)

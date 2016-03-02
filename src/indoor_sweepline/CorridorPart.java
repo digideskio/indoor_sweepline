@@ -100,12 +100,12 @@ public class CorridorPart
 	}
 	else if (side == ReachableSide.FRONT)
 	{
-	    if (middleCoor.lon() < start.lon())
+	    if (start.lon() < middleCoor.lon())
 		start = to.getCoor();
 	}
 	else if (side == ReachableSide.BACK)
 	{
-	    if (start.lon() < middleCoor.lon())
+	    if (middleCoor.lon() < start.lon())
 		start = to.getCoor();
 	}
 	    
@@ -141,6 +141,7 @@ public class CorridorPart
 	    setExtraElements(from, to);
 	    nodes.add(middleNode);
 
+	    extraWay.removeAll();
 	    extraWay.put("highway", "steps");
 	    extraWay.put("incline", "up;down");
 	}
@@ -149,6 +150,7 @@ public class CorridorPart
 	    setExtraElements(from, to);
 	    nodes.add(middleNode);
 
+	    extraWay.removeAll();
 	    extraWay.put("highway", "steps");
 	    extraWay.put("incline", "up;down");
 	    extraWay.put("conveying", "forward;backward");
@@ -158,8 +160,10 @@ public class CorridorPart
 	    setExtraElements(from, to);
 	    nodes.add(middleNode);
 
+	    detachedNode.removeAll();
 	    detachedNode.put("highway", "elevator");
 	    
+	    extraWay.removeAll();
 	    extraWay.put("highway", "footway");
 	}
 	else
@@ -195,14 +199,14 @@ public class CorridorPart
     
     private void adjustSideType(ReachableSide beamSide)
     {
-	if ((type == Type.WALL || type == Type.STAIRS) && side == ReachableSide.ALL)
+	if (type == Type.PASSAGE)
+	    side = ReachableSide.ALL;
+	else if (type != Type.VOID && side == ReachableSide.ALL)
 	{
 	    if (beamSide == ReachableSide.RIGHT)
 		side = ReachableSide.RIGHT;
 	    else
 		side = ReachableSide.LEFT;
 	}
-	else if (type == Type.PASSAGE)
-	    side = ReachableSide.ALL;
     }
 }

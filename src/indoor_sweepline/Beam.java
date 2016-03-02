@@ -14,7 +14,8 @@ public class Beam
 	parts = new Vector<CorridorPart>();
 	nodes = new Vector<Node>();
 	this.dataSet = dataSet;
-	defaultType = CorridorPart.Type.WALL;
+	defaultType = defaultSide == CorridorPart.ReachableSide.RIGHT ?
+	    CorridorPart.Type.WALL : CorridorPart.Type.PASSAGE;
 	this.defaultSide = defaultSide;
 	
 	addNode(new Node(center), nodes);
@@ -91,7 +92,26 @@ public class Beam
     
     public void setCorridorPartSide(int partIndex, CorridorPart.ReachableSide side)
     {
-	parts.elementAt(partIndex).setSide(side, defaultSide);
+	//if (defaultSide == CorridorPart.ReachableSide.ALL)
+	//{
+	    System.out.println("A " + partIndex + " " + side);
+	    if (partIndex > 0 && parts.elementAt(partIndex - 1).getSide() != CorridorPart.ReachableSide.ALL)
+		parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
+	    else
+		parts.elementAt(partIndex).setSide(side, defaultSide);
+		
+	    ++partIndex;
+	    while (partIndex < parts.size() &&
+		    parts.elementAt(partIndex).getSide() != CorridorPart.ReachableSide.ALL)
+	    {
+		System.out.println("B " + partIndex + " " + side);
+		parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
+		++partIndex;
+	    }
+	//}
+	//else
+	//    parts.elementAt(partIndex).setSide(side, defaultSide);
+	    
 	adjustStripCache();
     }
     
