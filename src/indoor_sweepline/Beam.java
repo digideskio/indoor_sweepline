@@ -65,10 +65,12 @@ public class Beam
     
     public void addCorridorPart(boolean append, double width)
     {
+	CorridorPart.ReachableSide side = defaultSide == CorridorPart.ReachableSide.RIGHT ?
+	    defaultSide : CorridorPart.ReachableSide.ALL;
 	if (append)
-	    parts.add(new CorridorPart(width, defaultType, defaultSide, dataSet));
+	    parts.add(new CorridorPart(width, defaultType, side, dataSet));
 	else
-	    parts.add(0, new CorridorPart(width, defaultType, defaultSide, dataSet));
+	    parts.add(0, new CorridorPart(width, defaultType, side, dataSet));
 	addNode(new Node(nodes.elementAt(0).getCoor()), nodes);
 	adjustNodesInBeam();
 	adjustStripCache();
@@ -92,25 +94,18 @@ public class Beam
     
     public void setCorridorPartSide(int partIndex, CorridorPart.ReachableSide side)
     {
-	//if (defaultSide == CorridorPart.ReachableSide.ALL)
-	//{
-	    System.out.println("A " + partIndex + " " + side);
-	    if (partIndex > 0 && parts.elementAt(partIndex - 1).getSide() != CorridorPart.ReachableSide.ALL)
-		parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
-	    else
-		parts.elementAt(partIndex).setSide(side, defaultSide);
-		
+	if (partIndex > 0 && parts.elementAt(partIndex - 1).getSide() != CorridorPart.ReachableSide.ALL)
+	    parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
+	else
+	    parts.elementAt(partIndex).setSide(side, defaultSide);
+	
+	++partIndex;
+	while (partIndex < parts.size() &&
+		parts.elementAt(partIndex).getSide() != CorridorPart.ReachableSide.ALL)
+	{
+	    parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
 	    ++partIndex;
-	    while (partIndex < parts.size() &&
-		    parts.elementAt(partIndex).getSide() != CorridorPart.ReachableSide.ALL)
-	    {
-		System.out.println("B " + partIndex + " " + side);
-		parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
-		++partIndex;
-	    }
-	//}
-	//else
-	//    parts.elementAt(partIndex).setSide(side, defaultSide);
+	}
 	    
 	adjustStripCache();
     }
@@ -173,11 +168,13 @@ public class Beam
 	    {
 		if (isPassageAbove(i))
 		{
+		    System.out.println("BA");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
 		else if (!isVoidAbove(i))
 		{
+		    System.out.println("BB");
 		    if (isReachableLeft(i-1))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -188,11 +185,13 @@ public class Beam
 	    {
 		if (isVoidAbove(i))
 		{
+		    System.out.println("BC");
 		    lhsStrips.add(new StripPosition(i, offset));
 		    rhsStrips.add(new StripPosition(i, offset));
 		}
 		else if (!isPassageAbove(i))
 		{
+		    System.out.println("BD");
 		    if (isReachableLeft(i-1))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -203,6 +202,7 @@ public class Beam
 	    {
 		if (isVoidAbove(i))
 		{
+		    System.out.println("BE");
 		    if (isReachableLeft(i))
 			lhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -210,6 +210,7 @@ public class Beam
 		}
 		else if (isPassageAbove(i))
 		{
+		    System.out.println("BF");
 		    if (isReachableLeft(i))
 			rhsStrips.add(new StripPosition(i, offset));
 		    else
@@ -220,6 +221,7 @@ public class Beam
 	    if (i < parts.size())
 		offset += parts.elementAt(i).width;
 	}
+	System.out.println("");
     }
     
     
