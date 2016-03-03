@@ -12,6 +12,7 @@ public class Beam
     public Beam(DataSet dataSet, LatLon center, double width, CorridorPart.ReachableSide defaultSide)
     {
 	parts = new Vector<CorridorPart>();
+	partsGeography = new Vector<CorridorGeography>();
 	nodes = new Vector<Node>();
 	this.dataSet = dataSet;
 	defaultType = defaultSide == CorridorPart.ReachableSide.RIGHT ?
@@ -68,9 +69,15 @@ public class Beam
 	CorridorPart.ReachableSide side = defaultSide == CorridorPart.ReachableSide.RIGHT ?
 	    defaultSide : CorridorPart.ReachableSide.ALL;
 	if (append)
-	    parts.add(new CorridorPart(width, defaultType, side, dataSet));
+	{
+	    parts.add(new CorridorPart(width, defaultType, side));
+	    partsGeography.add(new CorridorGeography(dataSet));
+	}
 	else
-	    parts.add(0, new CorridorPart(width, defaultType, side, dataSet));
+	{
+	    parts.add(0, new CorridorPart(width, defaultType, side));
+	    partsGeography.add(0, new CorridorGeography(dataSet));
+	}
 	addNode(new Node(nodes.elementAt(0).getCoor()), nodes);
 	adjustNodesInBeam();
 	adjustStripCache();
@@ -244,9 +251,13 @@ public class Beam
 	if (fromRight)
 	{
 	    if (nodes.size() > 0)
-		strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
-		    appendNodes(nodes.elementAt(nodes.size()-1),
-			this.nodes.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex), nodes);
+	    {
+		CorridorPart part = strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex);
+		strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex).
+		    appendNodes(part.getType(), part.getSide(),
+			nodes.elementAt(nodes.size()-1).getCoor(),
+			this.nodes.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex).getCoor(), nodes);
+	    }
 	    if (rhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
 		parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
 	    {
@@ -263,9 +274,11 @@ public class Beam
 	{
 	    if (nodes.size() > 0)
 	    {
-		strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
-		    appendNodes(nodes.elementAt(nodes.size()-1),
-			this.nodes.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex), nodes);
+		CorridorPart part = strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex);
+		strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex).
+		    appendNodes(part.getType(), part.getSide(),
+			nodes.elementAt(nodes.size()-1).getCoor(),
+			this.nodes.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex).getCoor(), nodes);
 	    }
 	    if (lhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
 		parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
@@ -292,7 +305,9 @@ public class Beam
 	nodes.add(this.nodes.elementAt(i));
 	while (i < parts.size() && parts.elementAt(i).isObstacle(defaultSide))
 	{
-	    parts.elementAt(i).appendNodes(this.nodes.elementAt(i), this.nodes.elementAt(i+1), nodes);
+	    CorridorPart part = parts.elementAt(i);
+	    partsGeography.elementAt(i).appendNodes(part.getType(), part.getSide(),
+		this.nodes.elementAt(i).getCoor(), this.nodes.elementAt(i+1).getCoor(), nodes);
 	    ++i;
 	    nodes.add(this.nodes.elementAt(i));
 	}
@@ -306,7 +321,9 @@ public class Beam
 	nodes.add(this.nodes.elementAt(i));
 	while (i > 0 && parts.elementAt(i-1).isObstacle(defaultSide))
 	{
-	    parts.elementAt(i-1).appendNodes(this.nodes.elementAt(i-1), this.nodes.elementAt(i), nodes);
+	    CorridorPart part = parts.elementAt(i-1);
+	    partsGeography.elementAt(i-1).appendNodes(part.getType(), part.getSide(),
+		this.nodes.elementAt(i-1).getCoor(), this.nodes.elementAt(i).getCoor(), nodes);
 	    --i;
 	    nodes.add(this.nodes.elementAt(i));
 	}
@@ -359,6 +376,7 @@ public class Beam
     }
     
     private Vector<CorridorPart> parts;
+    private Vector<CorridorGeography> partsGeography;
     private Vector<StripPosition> lhsStrips;
     private Vector<StripPosition> rhsStrips;
     private Vector<Node> nodes;

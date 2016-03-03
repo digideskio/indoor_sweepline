@@ -343,8 +343,10 @@ public class IndoorSweeplineModel
 		    
 		    if (nodes.size() > 0)
 		    {
-			strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex).
-			    appendNodes(nodes.elementAt(nodes.size()-1), nodes.elementAt(0), nodes);
+			CorridorPart part = strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex);
+			strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex).
+			    appendNodes(part.getType(), part.getSide(),
+				nodes.elementAt(nodes.size()-1).getCoor(), nodes.elementAt(0).getCoor(), nodes);
 			nodes.add(nodes.elementAt(0));
 		    }
 		    assignNds(wayPoolCount, nodes);
@@ -394,8 +396,11 @@ public class IndoorSweeplineModel
 	    assignCoor(nodePoolCount, addMeterOffset(beams.elementAt(cursor.stripIndex).getFirstCoor(),
 		strip.rhs.elementAt(cursor.partIndex / 2 * 2), strip.width / 2.));
 	if (nodes.size() > 0)
-	    strip.partAt(cursor.partIndex).
-		appendNodes(nodes.elementAt(nodes.size()-1), nodePool.elementAt(nodePoolCount), nodes);
+	{
+	    CorridorPart part = strip.partAt(cursor.partIndex);
+	    strip.geographyAt(cursor.partIndex).appendNodes(part.getType(), part.getSide(),
+		nodes.elementAt(nodes.size()-1).getCoor(), nodePool.elementAt(nodePoolCount).getCoor(), nodes);
+	}
 	nodes.add(nodePool.elementAt(nodePoolCount));
 	++nodePoolCount;
 	
