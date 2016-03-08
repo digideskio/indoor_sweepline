@@ -280,7 +280,7 @@ public class Beam
     
 
     public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight,
-	BeamGeography geography)
+	BeamGeography geography, String level)
     {
 	if (fromRight)
 	{
@@ -288,7 +288,7 @@ public class Beam
 	    StripPosition to = pos.connectedToSameSide ?
 		rhsStrips.elementAt(pos.connectedTo) : lhsStrips.elementAt(pos.connectedTo);
 		
-	    geography.appendNodes(pos.nodeIndex, to.nodeIndex);
+	    geography.appendNodes(pos.nodeIndex, to.nodeIndex, level);
 	    
 	    if (!pos.connectedToSameSide)
 		--cursor.stripIndex;
@@ -302,7 +302,7 @@ public class Beam
 	    StripPosition to = pos.connectedToSameSide ?
 		lhsStrips.elementAt(pos.connectedTo) : rhsStrips.elementAt(pos.connectedTo);
 		
-	    geography.appendNodes(pos.nodeIndex, to.nodeIndex);
+	    geography.appendNodes(pos.nodeIndex, to.nodeIndex, level);
 	    
 	    if (!pos.connectedToSameSide)
 		++cursor.stripIndex;

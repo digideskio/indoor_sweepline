@@ -9,20 +9,23 @@ import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 
-/*
-TODO:
-- Level propagieren
-*/
-
-
 public class IndoorSweeplineModel
 {
+    public enum Type
+    {
+	CORRIDOR,
+	PLATFORM
+    };
+
+
     public IndoorSweeplineModel(OsmDataLayer activeLayer, LatLon center)
     {
 	target = new ModelGeography(activeLayer.data, center);
 	
 	beams = new Vector<Beam>();
 	strips = new Vector<Strip>();
+	type = Type.CORRIDOR;
+	level = "-1";
 	addBeam();
 	addStrip();
 	addBeam();
@@ -182,8 +185,34 @@ public class IndoorSweeplineModel
     }
     
     
+    public Type getType()
+    {
+	return type;
+    }
+    
+    public void setType(Type type)
+    {
+	this.type = type;
+	updateOsmModel();
+    }
+    
+    
+    public String getLevel()
+    {
+	return level;
+    }
+    
+    public void setLevel(String level)
+    {
+	this.level = level;
+	updateOsmModel();
+    }
+    
+    
     private Vector<Beam> beams;
     private Vector<Strip> strips;
+    private Type type;
+    private String level;
     
     DefaultComboBoxModel<String> structureBox;
 
@@ -251,9 +280,10 @@ public class IndoorSweeplineModel
 				strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex),
 				strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex),
 				cursor.stripIndex,
-				beams.elementAt(cursor.stripIndex).getBeamPartIndex(!toTheLeft, cursor.partIndex));
+				beams.elementAt(cursor.stripIndex).getBeamPartIndex(!toTheLeft, cursor.partIndex),
+				level);
 			    toTheLeft = beams.elementAt(cursor.stripIndex).appendNodes(
-				cursor, toTheLeft, target.beamAt(cursor.stripIndex));
+				cursor, toTheLeft, target.beamAt(cursor.stripIndex), level);
 			}
 			else if (!toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).rhs.size())
 			{
@@ -261,20 +291,21 @@ public class IndoorSweeplineModel
 				strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex),
 				strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex),
 				cursor.stripIndex + 1,
-				beams.elementAt(cursor.stripIndex + 1).getBeamPartIndex(!toTheLeft, cursor.partIndex));
+				beams.elementAt(cursor.stripIndex + 1).getBeamPartIndex(!toTheLeft, cursor.partIndex),
+				level);
 			    toTheLeft = beams.elementAt(cursor.stripIndex + 1).appendNodes(
-				cursor, toTheLeft, target.beamAt(cursor.stripIndex + 1));
+				cursor, toTheLeft, target.beamAt(cursor.stripIndex + 1), level);
 			}
 			else
 			    toTheLeft = appendUturn(cursor, toTheLeft);
 		    }
 		    
-		    target.finishWay(strips.elementAt(cursor.stripIndex), cursor.partIndex, j % 2 == 0);
+		    target.finishWay(strips.elementAt(cursor.stripIndex), cursor.partIndex, j % 2 == 0, level);
 		}
 	    }
 	}
 	
-	target.finishGeographyBuild();
+	target.finishGeographyBuild(type, level);
     }
     
     
@@ -284,7 +315,7 @@ public class IndoorSweeplineModel
 	target.appendUturnNode(strip, cursor.partIndex, cursor.stripIndex,
 	    beams.elementAt(toTheLeft ? cursor.stripIndex + 1 : cursor.stripIndex).
 		getBeamPartIndex(toTheLeft, cursor.partIndex),
-	    toTheLeft);
+	    toTheLeft, level);
 	
 	if (cursor.partIndex % 2 == 0)
 	    ++cursor.partIndex;

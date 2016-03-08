@@ -18,7 +18,7 @@ public class BeamGeography
     }
 
     
-    public void appendNodes(int from, int to)
+    public void appendNodes(int from, int to, String level)
     {
 	if (from <= to)
 	{
@@ -26,7 +26,7 @@ public class BeamGeography
 	    {
 		target.appendNode(nodes.elementAt(i));
 		CorridorPart part = parts.elementAt(i);
-		partsGeography.elementAt(i).appendNodes(part.getType(), part.getSide(),
+		partsGeography.elementAt(i).appendNodes(part.getType(), part.getSide(), level,
 		    nodes.elementAt(i).getCoor(), nodes.elementAt(i+1).getCoor(), target);
 	    }
 	    target.appendNode(nodes.elementAt(to));
@@ -37,7 +37,7 @@ public class BeamGeography
 	    {
 		target.appendNode(nodes.elementAt(i));
 		CorridorPart part = parts.elementAt(i-1);
-		partsGeography.elementAt(i-1).appendNodes(part.getType(), part.getSide(),
+		partsGeography.elementAt(i-1).appendNodes(part.getType(), part.getSide(), level,
 		    nodes.elementAt(i).getCoor(), nodes.elementAt(i-1).getCoor(), target);
 	    }
 	    target.appendNode(nodes.elementAt(to));

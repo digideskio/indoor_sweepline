@@ -101,6 +101,26 @@ public class IndoorSweeplineController implements MapView.LayerChangeListener
     {
 	return model.getStrip(beamIndex);
     }
+        
+    public IndoorSweeplineModel.Type getType()
+    {
+	return model.getType();
+    }
+    
+    public void setType(IndoorSweeplineModel.Type type)
+    {
+	model.setType(type);
+    }
+    
+    public String getLevel()
+    {
+	return model.getLevel();
+    }
+    
+    public void setLevel(String level)
+    {
+	model.setLevel(level);
+    }
     
     private OsmDataLayer layer;
     private IndoorSweeplineModel model;

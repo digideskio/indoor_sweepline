@@ -75,7 +75,7 @@ public class CorridorGeography
     }
     
     
-    public void appendNodes(CorridorPart.Type type, CorridorPart.ReachableSide side,
+    public void appendNodes(CorridorPart.Type type, CorridorPart.ReachableSide side, String level,
 	LatLon from, LatLon to, ModelGeography target)
     {
 	if (type == CorridorPart.Type.STAIRS)
@@ -88,6 +88,7 @@ public class CorridorGeography
 	    extraWay.removeAll();
 	    extraWay.put("highway", "steps");
 	    extraWay.put("incline", "up;down");
+	    extraWay.put("level", level);
 	}
 	else if (type == CorridorPart.Type.ESCALATOR)
 	{
@@ -100,6 +101,7 @@ public class CorridorGeography
 	    extraWay.put("highway", "steps");
 	    extraWay.put("incline", "up;down");
 	    extraWay.put("conveying", "forward;backward");
+	    extraWay.put("level", level);
 	}
 	else if (type == CorridorPart.Type.ELEVATOR)
 	{
@@ -111,6 +113,7 @@ public class CorridorGeography
 	    
 	    extraWay.removeAll();
 	    extraWay.put("highway", "footway");
+	    extraWay.put("level", level);
 	}
 	else
 	{

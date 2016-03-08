@@ -45,16 +45,18 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	GridbagPanel panel = new GridbagPanel();
 	
 	panel.add(new JLabel(tr("Vertical layer:")), 0, 0, 3, 1);
-	panel.add(new JTextField(4), 3, 0, 1, 1);
+	panel.add(makeLevelField(), 3, 0, 1, 1);
+	panel.add(new JLabel(tr("Structure type:")), 0, 1, 3, 1);
+	panel.add(typeBox(), 3, 1, 1, 1);
 	
-	panel.add(new JButton(prev), 0, 1, 1, 1);
-	panel.add(structureBox(), 1, 1, 1, 1);	
-	panel.add(new JButton(next), 2, 1, 2, 1);
+	panel.add(new JButton(prev), 0, 2, 1, 1);
+	panel.add(structureBox(), 1, 2, 1, 1);	
+	panel.add(new JButton(next), 2, 2, 2, 1);
 
-	panel.add(new JLabel(tr("Strip width:")), 0, 2, 3, 1);
-	panel.add(makeWidthField(), 3, 2, 1, 1);
+	panel.add(new JLabel(tr("Strip width:")), 0, 3, 3, 1);
+	panel.add(makeWidthField(), 3, 3, 1, 1);
 
-	panel.add(makeStructureTable(), 0, 3, 4, 1);
+	panel.add(makeStructureTable(), 0, 4, 4, 1);
 	
 	add(panel);
 	pack();
@@ -91,6 +93,17 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	catch (IllegalStateException ex)
 	{
 	}
+	
+	try
+	{
+	    level.setText(controller.getLevel());
+	}
+	catch (IllegalStateException ex)
+	{
+	}
+	
+	typeBoxModel.setSelectedItem(structureTypeToString(controller.getType()));
+	
 	
 	structureTableModel.setRowCount(0);
 	if (beamIndex % 2 == 0)
@@ -207,6 +220,16 @@ public class IndoorSweeplineWizardDialog extends JDialog
     }
     
     
+    private String structureTypeToString(IndoorSweeplineModel.Type type)
+    {
+	if (type == IndoorSweeplineModel.Type.CORRIDOR)
+	    return "corridor";
+	else if (type == IndoorSweeplineModel.Type.PLATFORM)
+	    return "platform";
+	return "";
+    }
+    
+    
     private JComboBox structureBox()
     {
 	JComboBox structureBox = new JComboBox(controller.structures());
@@ -222,6 +245,40 @@ public class IndoorSweeplineWizardDialog extends JDialog
     private PrevAction prev;
     private NextAction next;
     boolean inRefresh;
+    
+    
+    private JComboBox typeBox()
+    {
+	if (typeBoxModel == null)
+	{
+	    typeBoxModel = new DefaultComboBoxModel<String>();
+	    typeBoxModel.addElement("corridor");
+	    typeBoxModel.addElement("platform");
+	}
+	JComboBox typeBox = new JComboBox(typeBoxModel);
+	typeBox.addActionListener(new TypeBoxListener());
+	return typeBox;
+    }
+    
+    private DefaultComboBoxModel<String> typeBoxModel;
+    
+    
+    private class TypeBoxListener implements ActionListener
+    {
+	public void actionPerformed(ActionEvent e)
+	{
+	    if (inRefresh)
+		return;
+		
+	    String entry = (String)((JComboBox)e.getSource()).getSelectedItem();
+	    if (entry == "corridor")
+		controller.setType(IndoorSweeplineModel.Type.CORRIDOR);
+	    else
+		controller.setType(IndoorSweeplineModel.Type.PLATFORM);
+		
+	    refresh();
+	}
+    }
     
     
     private class PrevAction extends AbstractAction
@@ -323,6 +380,46 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    catch (NumberFormatException ex)
 	    {
 	    }
+	    
+	    refresh();
+	}
+    }
+
+    
+    private JTextField level;
+    
+    private JTextField makeLevelField()
+    {
+	level = new JTextField(5);
+	level.getDocument().addDocumentListener(new LevelFieldListener());
+	return level;
+    }
+    
+    
+    private class LevelFieldListener implements DocumentListener
+    {
+	public void changedUpdate(DocumentEvent e)
+	{
+	    update(e);
+	}
+	
+	public void insertUpdate(DocumentEvent e)
+	{
+	    update(e);
+	}
+	
+	public void removeUpdate(DocumentEvent e)
+	{
+	    update(e);
+	}
+	
+	
+	private void update(DocumentEvent e)
+	{
+	    if (inRefresh)
+		return;
+	    
+	    controller.setLevel(level.getText());
 	    
 	    refresh();
 	}

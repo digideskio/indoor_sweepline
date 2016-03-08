@@ -96,12 +96,12 @@ public class ModelGeography
     }
     
     
-    public void finishWay(Strip strip, int partIndex, boolean isOuter)
+    public void finishWay(Strip strip, int partIndex, boolean isOuter, String level)
     {
 	if (nodes.size() > 0)
 	{
 	    CorridorPart part = strip.partAt(partIndex);
-	    strip.geographyAt(partIndex).appendNodes(part.getType(), part.getSide(),
+	    strip.geographyAt(partIndex).appendNodes(part.getType(), part.getSide(), level,
 		nodes.elementAt(nodes.size()-1).getCoor(), nodes.elementAt(0).getCoor(), this);
 	    nodes.add(nodes.elementAt(0));
 	}
@@ -111,16 +111,18 @@ public class ModelGeography
     }
     
     
-    public void appendCorridorPart(CorridorPart part, CorridorGeography partGeography, int beamIndex, int partIndex)
+    public void appendCorridorPart(CorridorPart part, CorridorGeography partGeography, int beamIndex, int partIndex,
+	String level)
     {
 	if (nodes.size() > 0)
-	    partGeography.appendNodes(part.getType(), part.getSide(),
+	    partGeography.appendNodes(part.getType(), part.getSide(), level,
 		nodes.elementAt(nodes.size()-1).getCoor(),
 		beamsGeography.elementAt(beamIndex).coorAt(partIndex), this);
     }
     
     
-    public void appendUturnNode(Strip strip, int partIndex, int stripIndex, int beamNodeIndex, boolean toTheLeft)
+    public void appendUturnNode(Strip strip, int partIndex, int stripIndex, int beamNodeIndex, boolean toTheLeft,
+	String level)
     {
 	if (toTheLeft)
 	    assignCoor(addMeterOffset(beamsGeography.elementAt(stripIndex + 1).coorAt(beamNodeIndex),
@@ -132,7 +134,7 @@ public class ModelGeography
 	if (nodes.size() > 0)
 	{
 	    CorridorPart part = strip.partAt(partIndex);
-	    strip.geographyAt(partIndex).appendNodes(part.getType(), part.getSide(),
+	    strip.geographyAt(partIndex).appendNodes(part.getType(), part.getSide(), level,
 		nodes.elementAt(nodes.size()-1).getCoor(), nodePool.elementAt(nodePoolCount).getCoor(), this);
 	}
 	nodes.add(nodePool.elementAt(nodePoolCount));
@@ -140,7 +142,7 @@ public class ModelGeography
     }
     
     
-    public void finishGeographyBuild()
+    public void finishGeographyBuild(IndoorSweeplineModel.Type type, String level)
     {
 	for (int i = nodePoolCount; i < nodePool.size(); ++i)
 	    nodePool.elementAt(i).setDeleted(true);
@@ -150,7 +152,7 @@ public class ModelGeography
 	    wayPool.elementAt(i).setDeleted(true);
 	wayPool.setSize(wayPoolCount);
 	
-	adjustMultipolygonRelation();
+	adjustMultipolygonRelation(type, level);
     }
     
     
@@ -195,14 +197,40 @@ public class ModelGeography
     }
     
     
-    private void adjustMultipolygonRelation()
+    private static void addPolygonTags(IndoorSweeplineModel.Type type, String level, OsmPrimitive obj)
+    {
+	if (type == IndoorSweeplineModel.Type.PLATFORM)
+	{
+	    obj.put("railway", "platform");
+	    obj.put("public_transport", "platform");
+	    obj.put("area", "yes");
+	    obj.put("level", level);
+	}
+	else
+	{
+	    obj.put("highway", "pedestrian");
+	    obj.put("indoor", "corridor");
+	    obj.put("area", "yes");
+	    obj.put("level", level);
+	}
+    }
+    
+    
+    private void adjustMultipolygonRelation(IndoorSweeplineModel.Type type, String level)
     {
 	if (members.size() > 1)
 	{
+	    if (wayPool.size() > 0)
+		wayPool.elementAt(0).removeAll();
+	    
 	    if (multipolygon == null)
 	    {
 		multipolygon = new Relation();
 		dataSet.addPrimitive(multipolygon);
+		
+		multipolygon.removeAll();
+		multipolygon.put("type", "multipolygon");
+		addPolygonTags(type, level, multipolygon);
 	    }
 	    multipolygon.setMembers(members);
 	}
@@ -212,6 +240,12 @@ public class ModelGeography
 	    {
 		multipolygon.setDeleted(true);
 		multipolygon = null;
+	    }
+	    
+	    if (wayPool.size() == 1)
+	    {
+		wayPool.elementAt(0).removeAll();
+		addPolygonTags(type, level, wayPool.elementAt(0));
 	    }
 	}
     }
