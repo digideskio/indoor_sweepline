@@ -16,7 +16,7 @@ public class CorridorGeography
     }
     
     
-    private void setExtraElements(CorridorPart.ReachableSide side, LatLon from, LatLon to)
+    private void setExtraElements(CorridorPart.ReachableSide side, LatLon from, LatLon to, boolean extraWayUp)
     {
 	LatLon middleCoor = new LatLon((from.lat() + to.lat())/2.,
 	    (from.lon() + to.lon())/2.);
@@ -62,8 +62,16 @@ public class CorridorGeography
 	    detachedNode.setCoor(detachedCoor);
 	
 	Vector<Node> extraWayNodes = new Vector<Node>();
-	extraWayNodes.add(middleNode);
-	extraWayNodes.add(detachedNode);
+	if (extraWayUp)
+	{
+	    extraWayNodes.add(middleNode);
+	    extraWayNodes.add(detachedNode);
+	}
+	else
+	{
+	    extraWayNodes.add(detachedNode);
+	    extraWayNodes.add(middleNode);
+	}
 	if (extraWay == null)
 	{
 	    extraWay = new Way();
@@ -78,34 +86,49 @@ public class CorridorGeography
     public void appendNodes(CorridorPart.Type type, CorridorPart.ReachableSide side, String level,
 	LatLon from, LatLon to, ModelGeography target)
     {
-	if (type == CorridorPart.Type.STAIRS)
+	if (type == CorridorPart.Type.STAIRS_UP || type == CorridorPart.Type.STAIRS_DOWN)
 	{
-	    setExtraElements(side, from, to);
+	    setExtraElements(side, from, to, type == CorridorPart.Type.STAIRS_UP);
 	    target.appendNode(middleNode);
 
 	    detachedNode.removeAll();
 
 	    extraWay.removeAll();
 	    extraWay.put("highway", "steps");
-	    extraWay.put("incline", "up;down");
+	    extraWay.put("incline", "up");
 	    extraWay.put("level", level);
 	}
-	else if (type == CorridorPart.Type.ESCALATOR)
+	else if (type == CorridorPart.Type.ESCALATOR_UP_LEAVING
+	    || type == CorridorPart.Type.ESCALATOR_UP_ARRIVING
+	    || type == CorridorPart.Type.ESCALATOR_UP_BIDIRECTIONAL
+	    || type == CorridorPart.Type.ESCALATOR_DOWN_LEAVING
+	    || type == CorridorPart.Type.ESCALATOR_DOWN_ARRIVING
+	    || type == CorridorPart.Type.ESCALATOR_DOWN_BIDIRECTIONAL)
 	{
-	    setExtraElements(side, from, to);
+	    setExtraElements(side, from, to,
+		type == CorridorPart.Type.ESCALATOR_UP_LEAVING
+		|| type == CorridorPart.Type.ESCALATOR_UP_ARRIVING
+		|| type == CorridorPart.Type.ESCALATOR_UP_BIDIRECTIONAL);
 	    target.appendNode(middleNode);
 
 	    detachedNode.removeAll();
 
 	    extraWay.removeAll();
 	    extraWay.put("highway", "steps");
-	    extraWay.put("incline", "up;down");
-	    extraWay.put("conveying", "forward;backward");
+	    extraWay.put("incline", "up");
+	    if (type == CorridorPart.Type.ESCALATOR_UP_LEAVING
+		    || type == CorridorPart.Type.ESCALATOR_DOWN_ARRIVING)
+		extraWay.put("conveying", "forward");
+	    else if (type == CorridorPart.Type.ESCALATOR_UP_ARRIVING
+		    || type == CorridorPart.Type.ESCALATOR_DOWN_LEAVING)
+		extraWay.put("conveying", "backward");
+	    else
+		extraWay.put("conveying", "reversible");
 	    extraWay.put("level", level);
 	}
 	else if (type == CorridorPart.Type.ELEVATOR)
 	{
-	    setExtraElements(side, from, to);
+	    setExtraElements(side, from, to, true);
 	    target.appendNode(middleNode);
 
 	    detachedNode.removeAll();

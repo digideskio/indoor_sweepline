@@ -160,10 +160,22 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    return "passage";
 	else if (type == CorridorPart.Type.WALL)
 	    return "wall";
-	else if (type == CorridorPart.Type.STAIRS)
-	    return "stairs";
-	else if (type == CorridorPart.Type.ESCALATOR)
-	    return "escalator";
+	else if (type == CorridorPart.Type.STAIRS_UP)
+	    return "stairs to upper level";
+	else if (type == CorridorPart.Type.STAIRS_DOWN)
+	    return "stairs to lower level";
+	else if (type == CorridorPart.Type.ESCALATOR_UP_LEAVING)
+	    return "escalator leaving to upper level";
+	else if (type == CorridorPart.Type.ESCALATOR_UP_ARRIVING)
+	    return "escalator arriving from upper level";
+	else if (type == CorridorPart.Type.ESCALATOR_UP_BIDIRECTIONAL)
+	    return "escalator (reversible) to upper level";
+	else if (type == CorridorPart.Type.ESCALATOR_DOWN_LEAVING)
+	    return "escalator leaving to lower level";
+	else if (type == CorridorPart.Type.ESCALATOR_DOWN_ARRIVING)
+	    return "escalator arriving from lower level";
+	else if (type == CorridorPart.Type.ESCALATOR_DOWN_BIDIRECTIONAL)
+	    return "escalator (reversible) to lower level";
 	else if (type == CorridorPart.Type.ELEVATOR)
 	    return "elevator";
 	return "";
@@ -178,10 +190,22 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    return CorridorPart.Type.PASSAGE;
 	else if (val == "wall")
 	    return CorridorPart.Type.WALL;
-	else if (val == "stairs")
-	    return CorridorPart.Type.STAIRS;
-	else if (val == "escalator")
-	    return CorridorPart.Type.ESCALATOR;
+	else if (val == "stairs to upper level")
+	    return CorridorPart.Type.STAIRS_UP;
+	else if (val == "stairs to lower level")
+	    return CorridorPart.Type.STAIRS_DOWN;
+	else if (val == "escalator leaving to upper level")
+	    return CorridorPart.Type.ESCALATOR_UP_LEAVING;
+	else if (val == "escalator arriving from upper level")
+	    return CorridorPart.Type.ESCALATOR_UP_ARRIVING;
+	else if (val == "escalator (reversible) to upper level")
+	    return CorridorPart.Type.ESCALATOR_UP_BIDIRECTIONAL;
+	else if (val == "escalator leaving to lower level")
+	    return CorridorPart.Type.ESCALATOR_DOWN_LEAVING;
+	else if (val == "escalator arriving from lower level")
+	    return CorridorPart.Type.ESCALATOR_DOWN_ARRIVING;
+	else if (val == "escalator (reversible) to lower level")
+	    return CorridorPart.Type.ESCALATOR_DOWN_BIDIRECTIONAL;
 	else if (val == "elevator")
 	    return CorridorPart.Type.ELEVATOR;
 	return CorridorPart.Type.VOID;
@@ -454,8 +478,14 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	comboBox.addItem("void");
 	comboBox.addItem("passage");
 	comboBox.addItem("wall");
-	comboBox.addItem("stairs");
-	comboBox.addItem("escalator");
+	comboBox.addItem("stairs to upper level");
+	comboBox.addItem("stairs to lower level");
+	comboBox.addItem("escalator leaving to upper level");
+	comboBox.addItem("escalator arriving from upper level");
+	comboBox.addItem("escalator (reversible) to upper level");
+	comboBox.addItem("escalator leaving to lower level");
+	comboBox.addItem("escalator arriving from lower level");
+	comboBox.addItem("escalator (reversible) to lower level");
 	comboBox.addItem("elevator");
 	column.setCellEditor(new DefaultCellEditor(comboBox));
 
