@@ -89,12 +89,20 @@ public class Beam
     
     private boolean isVoidAbove(int i)
     {
-	return i == 0 || parts.elementAt(i-1).getType() == CorridorPart.Type.VOID;
+	return i == 0 || parts.elementAt(i-1).getType() == CorridorPart.Type.VOID
+	    || (parts.elementAt(i-1).getSide() == CorridorPart.ReachableSide.RIGHT
+		&& defaultSide == CorridorPart.ReachableSide.LEFT)
+	    || (parts.elementAt(i-1).getSide() == CorridorPart.ReachableSide.LEFT
+		&& defaultSide == CorridorPart.ReachableSide.RIGHT);
     }
     
     private boolean isVoidBelow(int i)
     {
-	return i == parts.size() || parts.elementAt(i).getType() == CorridorPart.Type.VOID;
+	return i == parts.size() || parts.elementAt(i).getType() == CorridorPart.Type.VOID
+	    || (parts.elementAt(i).getSide() == CorridorPart.ReachableSide.RIGHT
+		&& defaultSide == CorridorPart.ReachableSide.LEFT)
+	    || (parts.elementAt(i).getSide() == CorridorPart.ReachableSide.LEFT
+		&& defaultSide == CorridorPart.ReachableSide.RIGHT);
     }
     
     private boolean isPassageAbove(int i)
@@ -239,11 +247,6 @@ public class Beam
 	    if (i < parts.size())
 		offset += parts.elementAt(i).width;
 	}
-	
-	for (StripPosition pos : lhsStrips)
-	    System.out.println("CL " + pos.connectedToSameSide + " " + pos.connectedTo + " " + pos.nodeIndex);
-	for (StripPosition pos : rhsStrips)
-	    System.out.println("CR " + pos.connectedToSameSide + " " + pos.connectedTo + " " + pos.nodeIndex);
     }
     
     

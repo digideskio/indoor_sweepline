@@ -11,7 +11,6 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 /*
 TODO:
-- WALL mit anderer Orientierung als void behandeln
 - Level propagieren
 */
 
@@ -245,11 +244,9 @@ public class IndoorSweeplineModel
 		    boolean toTheLeft = true;
 		    while (stripRefs.elementAt(cursor.stripIndex).elementAt(cursor.partIndex) == null)
 		    {
-			System.out.println("A " + cursor.stripIndex + " " + cursor.partIndex + " " + toTheLeft);
 			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
 			if (toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).lhs.size())
 			{
-			    System.out.println("DA");
 			    target.appendCorridorPart(
 				strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex),
 				strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex),
@@ -260,7 +257,6 @@ public class IndoorSweeplineModel
 			}
 			else if (!toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).rhs.size())
 			{
-			    System.out.println("DB");
 			    target.appendCorridorPart(
 				strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex),
 				strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex),
@@ -272,7 +268,6 @@ public class IndoorSweeplineModel
 			else
 			    toTheLeft = appendUturn(cursor, toTheLeft);
 		    }
-		    System.out.println("B " + cursor.stripIndex + " " + cursor.partIndex);
 		    
 		    target.finishWay(strips.elementAt(cursor.stripIndex), cursor.partIndex, j % 2 == 0);
 		}
@@ -285,7 +280,6 @@ public class IndoorSweeplineModel
     
     private boolean appendUturn(SweepPolygonCursor cursor, boolean toTheLeft)
     {
-			    System.out.println("DC");
 	Strip strip = strips.elementAt(cursor.stripIndex);
 	target.appendUturnNode(strip, cursor.partIndex, cursor.stripIndex,
 	    beams.elementAt(toTheLeft ? cursor.stripIndex + 1 : cursor.stripIndex).
