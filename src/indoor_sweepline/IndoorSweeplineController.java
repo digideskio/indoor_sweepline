@@ -15,7 +15,6 @@ public class IndoorSweeplineController implements MapView.LayerChangeListener
 	MapView.addLayerChangeListener(this);
 	layer = activeLayer;
 	model = new IndoorSweeplineModel(activeLayer, center);
-	model.updateOsmModel();
 	dialog = new IndoorSweeplineWizardDialog(this);
 	dialog.setVisible(true);
     }

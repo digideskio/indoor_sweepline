@@ -31,12 +31,12 @@ public class CorridorGeography
 	LatLon start = from;
 	if (side == CorridorPart.ReachableSide.LEFT)
 	{
-	    if (start.lat() < middleCoor.lat())
+	    if (middleCoor.lat() < start.lat())
 		start = to;
 	}
 	else if (side == CorridorPart.ReachableSide.RIGHT)
 	{
-	    if (middleCoor.lat() < start.lat())
+	    if (start.lat() < middleCoor.lat())
 		start = to;
 	}
 	else if (side == CorridorPart.ReachableSide.FRONT)
@@ -52,7 +52,7 @@ public class CorridorGeography
 	    
 	double scale = Math.cos(middleCoor.lat() * (Math.PI/180.));
 	LatLon detachedCoor = new LatLon(middleCoor.lat() + (start.lon() - middleCoor.lon()) * scale,
-	    middleCoor.lon() + (start.lat() - middleCoor.lat()) / scale);
+	    middleCoor.lon() - (start.lat() - middleCoor.lat()) / scale);
 	if (detachedNode == null)
 	{
 	    detachedNode = new Node(detachedCoor);
@@ -76,12 +76,12 @@ public class CorridorGeography
     
     
     public void appendNodes(CorridorPart.Type type, CorridorPart.ReachableSide side,
-	LatLon from, LatLon to, List<Node> nodes)
+	LatLon from, LatLon to, ModelGeography target)
     {
 	if (type == CorridorPart.Type.STAIRS)
 	{
 	    setExtraElements(side, from, to);
-	    nodes.add(middleNode);
+	    target.appendNode(middleNode);
 
 	    detachedNode.removeAll();
 
@@ -92,7 +92,7 @@ public class CorridorGeography
 	else if (type == CorridorPart.Type.ESCALATOR)
 	{
 	    setExtraElements(side, from, to);
-	    nodes.add(middleNode);
+	    target.appendNode(middleNode);
 
 	    detachedNode.removeAll();
 
@@ -104,7 +104,7 @@ public class CorridorGeography
 	else if (type == CorridorPart.Type.ELEVATOR)
 	{
 	    setExtraElements(side, from, to);
-	    nodes.add(middleNode);
+	    target.appendNode(middleNode);
 
 	    detachedNode.removeAll();
 	    detachedNode.put("highway", "elevator");
@@ -114,6 +114,11 @@ public class CorridorGeography
 	}
 	else
 	{
+	    if (extraWay != null)
+	    {
+		extraWay.setDeleted(true);
+		extraWay = null;
+	    }
 	    if (middleNode != null)
 	    {
 		middleNode.setDeleted(true);
@@ -123,11 +128,6 @@ public class CorridorGeography
 	    {
 		detachedNode.setDeleted(true);
 		detachedNode = null;
-	    }
-	    if (extraWay != null)
-	    {
-		extraWay.setDeleted(true);
-		extraWay = null;
 	    }
 	}
     }

@@ -76,9 +76,9 @@ public class CorridorPart
     
     private void adjustSideType(ReachableSide beamSide)
     {
-	if (type == Type.PASSAGE)
+	if (type == Type.PASSAGE || type == Type.VOID)
 	    side = ReachableSide.ALL;
-	else if (type != Type.VOID && side == ReachableSide.ALL)
+	else if (side == ReachableSide.ALL)
 	{
 	    if (beamSide == ReachableSide.RIGHT)
 		side = ReachableSide.RIGHT;

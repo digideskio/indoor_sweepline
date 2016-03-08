@@ -1,85 +1,54 @@
 package indoor_sweepline;
 
-import java.util.List;
 import java.util.Vector;
-import org.openstreetmap.josm.data.coor.LatLon;
-import org.openstreetmap.josm.data.osm.DataSet;
-import org.openstreetmap.josm.data.osm.Node;
 
 
 public class Beam
 {
-    public Beam(DataSet dataSet, LatLon center, double width, CorridorPart.ReachableSide defaultSide)
+    public Beam(double width, CorridorPart.ReachableSide defaultSide)
     {
 	parts = new Vector<CorridorPart>();
-	partsGeography = new Vector<CorridorGeography>();
-	nodes = new Vector<Node>();
-	this.dataSet = dataSet;
-	defaultType = defaultSide == CorridorPart.ReachableSide.RIGHT ?
-	    CorridorPart.Type.WALL : CorridorPart.Type.PASSAGE;
-	this.defaultSide = defaultSide;
 	
-	addNode(new Node(center), nodes);
-	addCorridorPart(true, width);
-
-	this.nodes = nodes;
-    }
-    
-    
-    public void setDefaultSide(CorridorPart.ReachableSide defaultSide)
-    {
-	this.defaultSide = defaultSide;
+	setDefaultSide_(defaultSide);	
+	addCorridorPart_(true, width);
 	adjustStripCache();
     }
     
-
-    public void adjustNodes(double lon)
+    
+    private void setDefaultSide_(CorridorPart.ReachableSide defaultSide)
     {
-	for (Node node : nodes)
-	    node.setCoor(new LatLon(node.getCoor().lat(), lon));
+	this.defaultSide = defaultSide;
+	defaultType = defaultSide == CorridorPart.ReachableSide.RIGHT ?
+	    CorridorPart.Type.WALL : CorridorPart.Type.PASSAGE;
+    }
+    
+    public void setDefaultSide(CorridorPart.ReachableSide defaultSide)
+    {
+	setDefaultSide_(defaultSide);
+	adjustStripCache();
     }
     
     
-    public void adjustNodesInBeam()
-    {
-	double offset = 0;
-	for (int i = 0; i < parts.size(); ++i)
-	{
-	    offset += parts.elementAt(i).width;
-	    nodes.elementAt(i+1).setCoor(new LatLon(addMetersToLat(
-		nodes.elementAt(0).getCoor(), offset), nodes.elementAt(0).getCoor().lon()));
-	}
-    }
-    
-    
-    public List<CorridorPart> getBeamParts()
+    public Vector<CorridorPart> getBeamParts()
     {
 	return parts;
     }
-    
-    
-    public LatLon getFirstCoor()
-    {
-	return nodes.elementAt(0).getCoor();
-    }
 
     
-    public void addCorridorPart(boolean append, double width)
+    private void addCorridorPart_(boolean append, double width)
     {
 	CorridorPart.ReachableSide side = defaultSide == CorridorPart.ReachableSide.RIGHT ?
 	    defaultSide : CorridorPart.ReachableSide.ALL;
+	    
 	if (append)
-	{
 	    parts.add(new CorridorPart(width, defaultType, side));
-	    partsGeography.add(new CorridorGeography(dataSet));
-	}
 	else
-	{
 	    parts.add(0, new CorridorPart(width, defaultType, side));
-	    partsGeography.add(0, new CorridorGeography(dataSet));
-	}
-	addNode(new Node(nodes.elementAt(0).getCoor()), nodes);
-	adjustNodesInBeam();
+    }
+
+    public void addCorridorPart(boolean append, double width)
+    {
+	addCorridorPart_(append, width);
 	adjustStripCache();
     }
 
@@ -87,7 +56,6 @@ public class Beam
     public void setCorridorPartWidth(int partIndex, double value)
     {
 	parts.elementAt(partIndex).width = value;
-	adjustNodesInBeam();
 	adjustStripCache();
     }
 
@@ -95,37 +63,27 @@ public class Beam
     public void setCorridorPartType(int partIndex, CorridorPart.Type type)
     {
 	parts.elementAt(partIndex).setType(type, defaultSide);
+	enforceSideCoherence();
 	adjustStripCache();
     }
 
     
     public void setCorridorPartSide(int partIndex, CorridorPart.ReachableSide side)
     {
-	if (partIndex > 0 && parts.elementAt(partIndex - 1).getSide() != CorridorPart.ReachableSide.ALL)
-	    parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
-	else
-	    parts.elementAt(partIndex).setSide(side, defaultSide);
-	
-	++partIndex;
-	while (partIndex < parts.size() &&
-		parts.elementAt(partIndex).getSide() != CorridorPart.ReachableSide.ALL)
-	{
-	    parts.elementAt(partIndex).setSide(parts.elementAt(partIndex - 1).getSide(), defaultSide);
-	    ++partIndex;
-	}
-	    
+	parts.elementAt(partIndex).setSide(side, defaultSide);
+	enforceSideCoherence();    
 	adjustStripCache();
     }
     
     
-    public Node lhsNode(int i)
+    private void enforceSideCoherence()
     {
-	return nodes.elementAt(lhsStrips.elementAt(i).nodeIndex);
-    }
-    
-    public Node rhsNode(int i)
-    {
-	return nodes.elementAt(rhsStrips.elementAt(i).nodeIndex);
+	for (int i = 1; i < parts.size(); ++i)
+	{
+	    if (parts.elementAt(i).getSide() != CorridorPart.ReachableSide.ALL
+		    && parts.elementAt(i-1).getSide() != CorridorPart.ReachableSide.ALL)
+		parts.elementAt(i).setSide(parts.elementAt(i-1).getSide(), defaultSide);
+	}
     }
     
     
@@ -162,6 +120,59 @@ public class Beam
 	return defaultSide == CorridorPart.ReachableSide.LEFT;
     }
     
+    
+    private void connectTwoPos(StripPosition newPos, boolean toLeft)
+    {
+	StripPosition other = null;
+	if (rhsStrips.size() > 0 && rhsStrips.elementAt(rhsStrips.size()-1).connectedTo == -1)
+	{
+	    newPos.connectedToSameSide = !toLeft;
+	    newPos.connectedTo = rhsStrips.size()-1;
+	    other = rhsStrips.elementAt(rhsStrips.size()-1);
+	}
+	else
+	{
+	    newPos.connectedToSameSide = toLeft;
+	    newPos.connectedTo = lhsStrips.size()-1;
+	    other = lhsStrips.elementAt(lhsStrips.size()-1);
+	}
+	    
+	other.connectedToSameSide = newPos.connectedToSameSide;
+	if (toLeft)
+	{
+	    other.connectedTo = lhsStrips.size();
+	    lhsStrips.add(newPos);
+	}
+	else
+	{
+	    other.connectedTo = rhsStrips.size();			
+	    rhsStrips.add(newPos);
+	}
+    }
+    
+    
+    private class StripPosition
+    {
+	StripPosition(int nodeIndex, double offset)
+	{
+	    this.nodeIndex = nodeIndex;
+	    this.offset = offset;
+	    connectedTo = -1;
+	    connectedToSameSide = false;
+	}
+    
+	public int nodeIndex;
+	public double offset;
+	public int connectedTo;
+	public boolean connectedToSameSide;
+    }
+    
+    
+    private Vector<CorridorPart> parts;
+    private Vector<StripPosition> lhsStrips;
+    private Vector<StripPosition> rhsStrips;
+
+    
     private void adjustStripCache()
     {
 	lhsStrips = new Vector<StripPosition>();
@@ -175,31 +186,37 @@ public class Beam
 	    {
 		if (isPassageAbove(i))
 		{
-		    lhsStrips.add(new StripPosition(i, offset));
-		    rhsStrips.add(new StripPosition(i, offset));
+		    StripPosition lhs = new StripPosition(i, offset);
+		    StripPosition rhs = new StripPosition(i, offset);
+		    
+		    lhs.connectedToSameSide = false;
+		    lhs.connectedTo = rhsStrips.size();
+		    rhs.connectedToSameSide = false;
+		    rhs.connectedTo = lhsStrips.size();
+		    
+		    lhsStrips.add(lhs);
+		    rhsStrips.add(rhs);
 		}
 		else if (!isVoidAbove(i))
-		{
-		    if (isReachableLeft(i-1))
-			lhsStrips.add(new StripPosition(i, offset));
-		    else
-			rhsStrips.add(new StripPosition(i, offset));
-		}
+		    connectTwoPos(new StripPosition(i, offset), isReachableLeft(i-1));
 	    }
 	    else if (isPassageBelow(i))
 	    {
 		if (isVoidAbove(i))
 		{
-		    lhsStrips.add(new StripPosition(i, offset));
-		    rhsStrips.add(new StripPosition(i, offset));
+		    StripPosition lhs = new StripPosition(i, offset);
+		    StripPosition rhs = new StripPosition(i, offset);
+		    
+		    lhs.connectedToSameSide = false;
+		    lhs.connectedTo = rhsStrips.size();
+		    rhs.connectedToSameSide = false;
+		    rhs.connectedTo = lhsStrips.size();
+		    
+		    lhsStrips.add(lhs);
+		    rhsStrips.add(rhs);
 		}
 		else if (!isPassageAbove(i))
-		{
-		    if (isReachableLeft(i-1))
-			rhsStrips.add(new StripPosition(i, offset));
-		    else
-			lhsStrips.add(new StripPosition(i, offset));
-		}
+		    connectTwoPos(new StripPosition(i, offset), !isReachableLeft(i-1));
 	    }
 	    else
 	    {
@@ -222,6 +239,11 @@ public class Beam
 	    if (i < parts.size())
 		offset += parts.elementAt(i).width;
 	}
+	
+	for (StripPosition pos : lhsStrips)
+	    System.out.println("CL " + pos.connectedToSameSide + " " + pos.connectedTo + " " + pos.nodeIndex);
+	for (StripPosition pos : rhsStrips)
+	    System.out.println("CR " + pos.connectedToSameSide + " " + pos.connectedTo + " " + pos.nodeIndex);
     }
     
     
@@ -244,154 +266,50 @@ public class Beam
 	return offsets;
     }
     
+    
+    public int getBeamPartIndex(boolean toTheLeft, int i)
+    {
+	if (toTheLeft)
+	    return lhsStrips.elementAt(i).nodeIndex;
+	else
+	    return rhsStrips.elementAt(i).nodeIndex;
+    }
+    
 
-    public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight, Vector<Node> nodes,
-	Vector<Strip> strips)
+    public boolean appendNodes(IndoorSweeplineModel.SweepPolygonCursor cursor, boolean fromRight,
+	BeamGeography geography)
     {
 	if (fromRight)
 	{
-	    if (nodes.size() > 0)
-	    {
-		CorridorPart part = strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex);
-		strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex).
-		    appendNodes(part.getType(), part.getSide(),
-			nodes.elementAt(nodes.size()-1).getCoor(),
-			this.nodes.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex).getCoor(), nodes);
-	    }
-	    if (rhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
-		parts.elementAt(rhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
-	    {
-		int i = countDown(rhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, false, rhsStrips, lhsStrips);
-	    }
-	    else
-	    {
-		int i = countUp(rhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, true, rhsStrips, lhsStrips);
-	    }
+	    StripPosition pos = rhsStrips.elementAt(cursor.partIndex);
+	    StripPosition to = pos.connectedToSameSide ?
+		rhsStrips.elementAt(pos.connectedTo) : lhsStrips.elementAt(pos.connectedTo);
+		
+	    geography.appendNodes(pos.nodeIndex, to.nodeIndex);
+	    
+	    if (!pos.connectedToSameSide)
+		--cursor.stripIndex;
+	    cursor.partIndex = pos.connectedTo;
+	    
+	    return !pos.connectedToSameSide;
 	}
 	else
 	{
-	    if (nodes.size() > 0)
-	    {
-		CorridorPart part = strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex);
-		strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex).
-		    appendNodes(part.getType(), part.getSide(),
-			nodes.elementAt(nodes.size()-1).getCoor(),
-			this.nodes.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex).getCoor(), nodes);
-	    }
-	    if (lhsStrips.elementAt(cursor.partIndex).nodeIndex > 0 &&
-		parts.elementAt(lhsStrips.elementAt(cursor.partIndex).nodeIndex - 1).isObstacle(defaultSide))
-	    {
-		int i = countDown(lhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, false, lhsStrips, rhsStrips);
-	    }
-	    else
-	    {
-		int i = countUp(lhsStrips, cursor.partIndex, nodes);
-		return updateCursor(cursor, i, fromRight, true, lhsStrips, rhsStrips);
-	    }
+	    StripPosition pos = lhsStrips.elementAt(cursor.partIndex);
+	    StripPosition to = pos.connectedToSameSide ?
+		lhsStrips.elementAt(pos.connectedTo) : rhsStrips.elementAt(pos.connectedTo);
+		
+	    geography.appendNodes(pos.nodeIndex, to.nodeIndex);
+	    
+	    if (!pos.connectedToSameSide)
+		++cursor.stripIndex;
+	    cursor.partIndex = pos.connectedTo;
+	    
+	    return pos.connectedToSameSide;
 	}
     }
     
     
     private CorridorPart.Type defaultType;
     private CorridorPart.ReachableSide defaultSide;
-
-    
-    private int countUp(Vector<StripPosition> strips, int partIndex, List<Node> nodes)
-    {
-	int i = strips.elementAt(partIndex).nodeIndex;
-	nodes.add(this.nodes.elementAt(i));
-	while (i < parts.size() && parts.elementAt(i).isObstacle(defaultSide))
-	{
-	    CorridorPart part = parts.elementAt(i);
-	    partsGeography.elementAt(i).appendNodes(part.getType(), part.getSide(),
-		this.nodes.elementAt(i).getCoor(), this.nodes.elementAt(i+1).getCoor(), nodes);
-	    ++i;
-	    nodes.add(this.nodes.elementAt(i));
-	}
-	return i;
-    }
-    
-    
-    private int countDown(Vector<StripPosition> strips, int partIndex, List<Node> nodes)
-    {
-	int i = strips.elementAt(partIndex).nodeIndex;
-	nodes.add(this.nodes.elementAt(i));
-	while (i > 0 && parts.elementAt(i-1).isObstacle(defaultSide))
-	{
-	    CorridorPart part = parts.elementAt(i-1);
-	    partsGeography.elementAt(i-1).appendNodes(part.getType(), part.getSide(),
-		this.nodes.elementAt(i-1).getCoor(), this.nodes.elementAt(i).getCoor(), nodes);
-	    --i;
-	    nodes.add(this.nodes.elementAt(i));
-	}
-	return i;
-    }
-    
-    
-    private static boolean updateCursor(IndoorSweeplineModel.SweepPolygonCursor cursor, int i,
-	boolean fromRight, boolean goingUp, Vector<StripPosition> sameStrips, Vector<StripPosition> oppositeStrips)
-    {
-	if (goingUp)
-	{
-	    if (cursor.partIndex+1 < sameStrips.size() && sameStrips.elementAt(cursor.partIndex+1).nodeIndex == i)
-	    {
-		++cursor.partIndex;
-		return !fromRight;
-	    }
-	}
-	else
-	{
-	    if (cursor.partIndex > 0 && sameStrips.elementAt(cursor.partIndex-1).nodeIndex == i)
-	    {
-		--cursor.partIndex;
-		return !fromRight;
-	    }
-	}
-	
-	int j = 0;
-	while (j < oppositeStrips.size() && oppositeStrips.elementAt(j).nodeIndex < i)
-	    ++j;
-	cursor.partIndex = j;
-	if (fromRight)
-	    --cursor.stripIndex;
-	else
-	    ++cursor.stripIndex;
-	return fromRight;
-    }
-    
-    
-    private class StripPosition
-    {
-	StripPosition(int nodeIndex, double offset)
-	{
-	    this.nodeIndex = nodeIndex;
-	    this.offset = offset;
-	}
-    
-	int nodeIndex;
-	double offset;
-    }
-    
-    private Vector<CorridorPart> parts;
-    private Vector<CorridorGeography> partsGeography;
-    private Vector<StripPosition> lhsStrips;
-    private Vector<StripPosition> rhsStrips;
-    private Vector<Node> nodes;
-    private DataSet dataSet;
-
-    
-    private void addNode(Node node, List<Node> nodes)
-    {
-	dataSet.addPrimitive(node);
-	nodes.add(node);
-    }
-
-    
-    private static double addMetersToLat(LatLon latLon, double south)
-    {
-	return latLon.lat() - south *(360./4e7);
-    }
 }

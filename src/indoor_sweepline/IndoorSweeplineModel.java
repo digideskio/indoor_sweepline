@@ -6,18 +6,12 @@ import javax.swing.DefaultComboBoxModel;
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.coor.LatLon;
 import org.openstreetmap.josm.data.osm.DataSet;
-import org.openstreetmap.josm.data.osm.Node;
-import org.openstreetmap.josm.data.osm.OsmPrimitive;
-import org.openstreetmap.josm.data.osm.Relation;
-import org.openstreetmap.josm.data.osm.RelationMember;
-import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 
 /*
 TODO:
 - WALL mit anderer Orientierung als void behandeln
-- Multipolygone
 - Level propagieren
 */
 
@@ -26,12 +20,7 @@ public class IndoorSweeplineModel
 {
     public IndoorSweeplineModel(OsmDataLayer activeLayer, LatLon center)
     {
-	dataSet = activeLayer.data;
-	this.center = center;
-	nodePool = new Vector<Node>();
-	wayPool = new Vector<Way>();
-	multipolygon = null;
-	members = null;
+	target = new ModelGeography(activeLayer.data, center);
 	
 	beams = new Vector<Beam>();
 	strips = new Vector<Strip>();
@@ -41,6 +30,9 @@ public class IndoorSweeplineModel
 	
 	structureBox = new DefaultComboBoxModel<String>();
     }
+    
+    
+    private ModelGeography target;
     
     
     public void addBeam()
@@ -61,24 +53,25 @@ public class IndoorSweeplineModel
 	for (int i = 0; i < strips.size(); ++i)
 	    offset += strips.elementAt(i).width;
 	    
-	beams.add(new Beam(dataSet, new LatLon(center.lat(), addMetersToLon(center, offset)),
-	    width, side));
+	beams.add(new Beam(width, side));
 	
 	if (strips.size() > 0)
 	    strips.elementAt(beams.size()-2).rhs = beams.elementAt(beams.size()-1).leftHandSideStrips();
+	    
 	updateOsmModel();
     }
     
     
     public void addStrip()
     {
-	strips.add(new Strip(dataSet));
+	strips.add(new Strip(target.getDataSet()));
 	if (beams.size() > 1)
 	{
 	    beams.elementAt(beams.size()-1).setDefaultSide(CorridorPart.ReachableSide.ALL);
 	    strips.elementAt(strips.size()-2).rhs = beams.elementAt(strips.size()-1).leftHandSideStrips();
 	}
 	strips.elementAt(strips.size()-1).lhs = beams.elementAt(strips.size()-1).rightHandSideStrips();	    
+	
 	updateOsmModel();
     }
 
@@ -108,15 +101,6 @@ public class IndoorSweeplineModel
     }
     
     
-    public void updateOsmModel()
-    {
-	adjustNodePositions();
-	distributeWays();
-	adjustMultipolygonRelation();
-	Main.map.mapView.repaint();
-    }
-
-    
     public Strip getStrip(int index)
     {
 	return strips.elementAt(index / 2);
@@ -132,6 +116,7 @@ public class IndoorSweeplineModel
     public void setStripWidth(int index, double value)
     {
 	strips.elementAt(index / 2).width = value;
+	
 	updateOsmModel();
     }
     
@@ -149,6 +134,7 @@ public class IndoorSweeplineModel
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
 	if (beamIndex / 2 < strips.size())
 	    strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
+	    
 	updateOsmModel();
     }
 
@@ -160,6 +146,7 @@ public class IndoorSweeplineModel
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
 	if (beamIndex / 2 < strips.size())
 	    strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
+	    
 	updateOsmModel();
     }
 
@@ -175,7 +162,11 @@ public class IndoorSweeplineModel
 		strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
 	}
 	else
-	    strips.elementAt(beamIndex / 2).setCorridorPartType(partIndex, type);
+	{
+	    if (type != CorridorPart.Type.PASSAGE && type != CorridorPart.Type.VOID)
+		strips.elementAt(beamIndex / 2).setCorridorPartType(partIndex, type);
+	}
+	    
 	updateOsmModel();
     }
 
@@ -187,17 +178,10 @@ public class IndoorSweeplineModel
 	    strips.elementAt(beamIndex / 2 - 1).rhs = beams.elementAt(beamIndex / 2).leftHandSideStrips();
 	if (beamIndex / 2 < strips.size())
 	    strips.elementAt(beamIndex / 2).lhs = beams.elementAt(beamIndex / 2).rightHandSideStrips();
+	    
 	updateOsmModel();
     }
     
-    
-    private DataSet dataSet;
-    private LatLon center;
-    // AbstractDatasetChangedEvent
-    private Vector<Way> wayPool;
-    private Vector<Node> nodePool;
-    private Relation multipolygon;
-    private Vector<RelationMember> members;
     
     private Vector<Beam> beams;
     private Vector<Strip> strips;
@@ -205,80 +189,12 @@ public class IndoorSweeplineModel
     DefaultComboBoxModel<String> structureBox;
 
     
-    private void addNode(Node node, List<Node> nodes)
+    private void updateOsmModel()
     {
-	dataSet.addPrimitive(node);
-	nodes.add(node);
+	distributeWays();
+	Main.map.mapView.repaint();
     }
-    
-    
-    private static LatLon addMeterOffset(LatLon latLon, double south, double east)
-    {
-	double scale = Math.cos(latLon.lat() * (Math.PI/180.));
-	return new LatLon(latLon.lat() - south *(360./4e7), latLon.lon() + east / scale *(360./4e7));
-    }
-    
-    private static double addMetersToLon(LatLon latLon, double east)
-    {
-	double scale = Math.cos(latLon.lat() * (Math.PI/180.));
-	return latLon.lon() + east / scale *(360./4e7);
-    }
-
-    
-    private void adjustNodePositions()
-    {
-	double offset = 0;
-	for (int i = 0; i < strips.size(); ++i)
-	{
-	    offset += strips.elementAt(i).width;
-	    if (i + 1 < beams.size())
-		beams.elementAt(i + 1).adjustNodes(addMetersToLon(center, offset));
-	}
-    }
-    
-    
-    private void assignCoor(int poolCount, LatLon latLon)
-    {
-	if (poolCount < nodePool.size())
-	    nodePool.elementAt(poolCount).setCoor(latLon);
-	else
-	{
-	    Node node = new Node(latLon);
-	    dataSet.addPrimitive(node);
-	    nodePool.add(node);
-	}
-    }
-    
-    
-    private void truncateNodePool(int poolCount)
-    {
-	for (int i = poolCount; i < nodePool.size(); ++i)
-	    nodePool.elementAt(i).setDeleted(true);
-	nodePool.setSize(poolCount);
-    }
-    
-    
-    private void assignNds(int poolCount, List<Node> nodes)
-    {
-	if (poolCount < wayPool.size())
-	    wayPool.elementAt(poolCount).setNodes(nodes);
-	else
-	{
-	    Way way = new Way();
-	    way.setNodes(nodes);
-	    dataSet.addPrimitive(way);
-	    wayPool.add(way);
-	}
-    }
-    
-    
-    private void truncateWayPool(int poolCount)
-    {
-	for (int i = poolCount; i < wayPool.size(); ++i)
-	    wayPool.elementAt(i).setDeleted(true);
-	wayPool.setSize(poolCount);
-    }
-    
+        
     
     public class SweepPolygonCursor
     {
@@ -298,12 +214,12 @@ public class IndoorSweeplineModel
 	public int partIndex;
     }
     
+    
     private void distributeWays()
     {
+	target.startGeographyBuild(beams, strips);
+    
 	Vector<Vector<Boolean>> stripRefs = new Vector<Vector<Boolean>>();
-	members = new Vector<RelationMember>();
-	if (multipolygon != null)
-	    multipolygon.setMembers(members);
 	for (Strip strip : strips)
 	{
 	    Vector<Boolean> refs = new Vector<Boolean>();
@@ -314,8 +230,6 @@ public class IndoorSweeplineModel
 	    stripRefs.add(refs);
 	}
 	
-	int wayPoolCount = 0;
-	nodePoolCount = 0;
 	Boolean truePtr = new Boolean(true);
 	for (int i = 0; i < stripRefs.size(); ++i)
 	{
@@ -324,85 +238,59 @@ public class IndoorSweeplineModel
 	    {
 		if (refs.elementAt(j) == null)
 		{
+		    target.startWay();
+		
 		    SweepPolygonCursor cursor = new SweepPolygonCursor(i, j);
-		    Vector<Node> nodes = new Vector<Node>();
 		    
 		    boolean toTheLeft = true;
 		    while (stripRefs.elementAt(cursor.stripIndex).elementAt(cursor.partIndex) == null)
 		    {
+			System.out.println("A " + cursor.stripIndex + " " + cursor.partIndex + " " + toTheLeft);
 			stripRefs.elementAt(cursor.stripIndex).setElementAt(truePtr, cursor.partIndex);
 			if (toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).lhs.size())
+			{
+			    System.out.println("DA");
+			    target.appendCorridorPart(
+				strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex),
+				strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex),
+				cursor.stripIndex,
+				beams.elementAt(cursor.stripIndex).getBeamPartIndex(!toTheLeft, cursor.partIndex));
 			    toTheLeft = beams.elementAt(cursor.stripIndex).appendNodes(
-				cursor, toTheLeft, nodes, strips);
+				cursor, toTheLeft, target.beamAt(cursor.stripIndex));
+			}
 			else if (!toTheLeft && cursor.partIndex < strips.elementAt(cursor.stripIndex).rhs.size())
+			{
+			    System.out.println("DB");
+			    target.appendCorridorPart(
+				strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex),
+				strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex),
+				cursor.stripIndex + 1,
+				beams.elementAt(cursor.stripIndex + 1).getBeamPartIndex(!toTheLeft, cursor.partIndex));
 			    toTheLeft = beams.elementAt(cursor.stripIndex + 1).appendNodes(
-				cursor, toTheLeft, nodes, strips);
+				cursor, toTheLeft, target.beamAt(cursor.stripIndex + 1));
+			}
 			else
-			    toTheLeft = appendUturn(cursor, toTheLeft, nodes);
+			    toTheLeft = appendUturn(cursor, toTheLeft);
 		    }
+		    System.out.println("B " + cursor.stripIndex + " " + cursor.partIndex);
 		    
-		    if (nodes.size() > 0)
-		    {
-			CorridorPart part = strips.elementAt(cursor.stripIndex).partAt(cursor.partIndex);
-			strips.elementAt(cursor.stripIndex).geographyAt(cursor.partIndex).
-			    appendNodes(part.getType(), part.getSide(),
-				nodes.elementAt(nodes.size()-1).getCoor(), nodes.elementAt(0).getCoor(), nodes);
-			nodes.add(nodes.elementAt(0));
-		    }
-		    assignNds(wayPoolCount, nodes);
-		    members.add(new RelationMember(j % 2 == 0 ? "outer" : "inner",
-			wayPool.elementAt(wayPoolCount)));
-		    ++wayPoolCount;
+		    target.finishWay(strips.elementAt(cursor.stripIndex), cursor.partIndex, j % 2 == 0);
 		}
 	    }
 	}
 	
-	truncateWayPool(wayPoolCount);
-	truncateNodePool(nodePoolCount);
+	target.finishGeographyBuild();
     }
     
     
-    private void adjustMultipolygonRelation()
+    private boolean appendUturn(SweepPolygonCursor cursor, boolean toTheLeft)
     {
-	if (members.size() > 1)
-	{
-	    if (multipolygon == null)
-	    {
-		multipolygon = new Relation();
-		dataSet.addPrimitive(multipolygon);
-	    }
-	    multipolygon.setMembers(members);
-	}
-	else
-	{
-	    if (multipolygon != null)
-	    {
-		multipolygon.setDeleted(true);
-		multipolygon = null;
-	    }
-	}
-    }
-    
-    
-    private int nodePoolCount;
-    
-    private boolean appendUturn(SweepPolygonCursor cursor, boolean toTheLeft, Vector<Node> nodes)
-    {
+			    System.out.println("DC");
 	Strip strip = strips.elementAt(cursor.stripIndex);
-	if (strip.rhs.size() < strip.lhs.size())
-	    assignCoor(nodePoolCount, addMeterOffset(beams.elementAt(cursor.stripIndex).getFirstCoor(),
-		strip.lhs.elementAt(cursor.partIndex / 2 * 2), strip.width / 2.));
-	else
-	    assignCoor(nodePoolCount, addMeterOffset(beams.elementAt(cursor.stripIndex).getFirstCoor(),
-		strip.rhs.elementAt(cursor.partIndex / 2 * 2), strip.width / 2.));
-	if (nodes.size() > 0)
-	{
-	    CorridorPart part = strip.partAt(cursor.partIndex);
-	    strip.geographyAt(cursor.partIndex).appendNodes(part.getType(), part.getSide(),
-		nodes.elementAt(nodes.size()-1).getCoor(), nodePool.elementAt(nodePoolCount).getCoor(), nodes);
-	}
-	nodes.add(nodePool.elementAt(nodePoolCount));
-	++nodePoolCount;
+	target.appendUturnNode(strip, cursor.partIndex, cursor.stripIndex,
+	    beams.elementAt(toTheLeft ? cursor.stripIndex + 1 : cursor.stripIndex).
+		getBeamPartIndex(toTheLeft, cursor.partIndex),
+	    toTheLeft);
 	
 	if (cursor.partIndex % 2 == 0)
 	    ++cursor.partIndex;
