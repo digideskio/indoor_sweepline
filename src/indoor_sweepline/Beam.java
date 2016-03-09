@@ -7,6 +7,7 @@ public class Beam
 {
     public Beam(double width, CorridorPart.ReachableSide defaultSide)
     {
+	offset = 0;
 	parts = new Vector<CorridorPart>();
 	
 	setDefaultSide_(defaultSide);	
@@ -32,6 +33,17 @@ public class Beam
     public Vector<CorridorPart> getBeamParts()
     {
 	return parts;
+    }
+    
+    
+    public double getBeamOffset()
+    {
+	return offset;
+    }
+    
+    public void setBeamOffset(double beamOffset)
+    {
+	offset = beamOffset;
     }
 
     
@@ -176,6 +188,7 @@ public class Beam
     }
     
     
+    private double offset;
     private Vector<CorridorPart> parts;
     private Vector<StripPosition> lhsStrips;
     private Vector<StripPosition> rhsStrips;

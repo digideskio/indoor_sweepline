@@ -10,7 +10,6 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 
 /* TODO:
-- offset
 - replicate last stopline
 - focus to useful table entry after cell edit
 - keyboard shortcuts
@@ -127,6 +126,18 @@ public class IndoorSweeplineModel
     {
 	strips.elementAt(index / 2).width = value;
 	
+	updateOsmModel();
+    }
+    
+    
+    public double getBeamOffset(int index)
+    {
+	return beams.elementAt(index / 2).getBeamOffset();
+    }
+    
+    public void setBeamOffset(int index, double beamOffset)
+    {
+	beams.elementAt(index / 2).setBeamOffset(beamOffset);	    
 	updateOsmModel();
     }
     
