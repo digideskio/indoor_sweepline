@@ -11,7 +11,6 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 /* TODO:
 - offset
-- generate menu "More tools" if necessary
 - replicate last stopline
 - focus to useful table entry after cell edit
 - keyboard shortcuts
