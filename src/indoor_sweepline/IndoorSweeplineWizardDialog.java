@@ -256,7 +256,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
     
     private JComboBox structureBox()
     {
-	JComboBox structureBox = new JComboBox(controller.structures());
+	JComboBox structureBox = new JComboBox<String>(controller.structures());
 	structureBox.addActionListener(new StructureBoxListener());
 	return structureBox;
     }
@@ -279,7 +279,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	    typeBoxModel.addElement("corridor");
 	    typeBoxModel.addElement("platform");
 	}
-	JComboBox typeBox = new JComboBox(typeBoxModel);
+	JComboBox typeBox = new JComboBox<String>(typeBoxModel);
 	typeBox.addActionListener(new TypeBoxListener());
 	return typeBox;
     }
@@ -474,7 +474,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	JTable table = new JTable(structureTableModel);
 	
 	TableColumn column = table.getColumnModel().getColumn(1);
-	JComboBox comboBox = new JComboBox();
+	JComboBox<String> comboBox = new JComboBox<String>();
 	comboBox.addItem("void");
 	comboBox.addItem("passage");
 	comboBox.addItem("wall");
@@ -490,7 +490,7 @@ public class IndoorSweeplineWizardDialog extends JDialog
 	column.setCellEditor(new DefaultCellEditor(comboBox));
 
 	column = table.getColumnModel().getColumn(2);
-	comboBox = new JComboBox();
+	comboBox = new JComboBox<String>();
 	comboBox.addItem("all");
 	comboBox.addItem("left");
 	comboBox.addItem("right");
